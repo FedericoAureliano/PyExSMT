@@ -1,0 +1,14 @@
+########
+# VSCODE
+########
+.vscode
+
+########
+# Python
+########
+__pycache__
+
+########
+# Dependencies
+########
+pysmt
