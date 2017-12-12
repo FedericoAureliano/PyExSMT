@@ -75,9 +75,9 @@ class PathToConstraint:
         if (c.parent == None):
             label = "root"
         else:
-            label = str(c.predicate.symtype)
+            label = c.predicate.symtype.__repr__()
             if not c.predicate.result:
                 label = "Not("+label+")"
-        node = "C" + str(c.id) + " [ label=\"" + label + "\" ];\n"
-        edges = [ "C" + str(c.id) + " -> " + "C" + str(child.id) + ";\n" for child in c.children ]
+        node = "C" + c.id.__repr__() + " [ label=\"" + label + "\" ];\n"
+        edges = [ "C" + c.id.__repr__() + " -> " + "C" + child.id.__repr__() + ";\n" for child in c.children ]
         return node + "".join(edges) + "".join([ self._toDot(child) for child in c.children ])

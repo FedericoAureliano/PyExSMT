@@ -63,7 +63,7 @@ try:
         print("\nSUMMARY:")
         for p,e in summary:
             print("PATH: %s" % p)
-            print("EFFECT: %s\n" % e)
+            print("EFFECT: %s\n" % e.__repr__())
 
     # output DOT graph
     if (options.dot_graph):
