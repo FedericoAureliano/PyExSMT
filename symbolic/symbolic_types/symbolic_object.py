@@ -56,12 +56,18 @@ class SymbolicObject(object):
         logging.debug("Checking equality of %s and %s: result is %s" %(self, other, ret))
         return ret
 
+    def __hash__(self):
+        return hash(str(self))
+
     def __str__(self):
         return self.expr.serialize()
 
     def __repr__(self):
         return self.__str__()
 
+
+    ## OPERATORS
+    # TODO: TYPE CHECKING AND CONVERTING
     def __eq__(self, other):
         #TODO: what if self is not symbolic and other is?
         other = wrap(other)
@@ -98,6 +104,54 @@ class SymbolicObject(object):
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(GE(self.expr, other))
+
+    def __add__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(self.expr + other)
+
+    def __sub__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(self.expr - other)
+
+    def __mul__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(self.expr * other)
+
+    def __mod__(self, other):
+        raise NotImplementedError("mod Not Implemented Yet!")
+
+    def __div__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(self.expr / other)
+
+    def __and__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(And(self.expr, other))
+
+    def __or__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            return False
+        return SymbolicObject(Or(self.expr, other))
+
+    def __xor__(self, other):
+        raise NotImplementedError("xor Not Implemented Yet!")
+
+    def __lshift__(self, other):
+        raise NotImplementedError("lshift Not Implemented Yet!")
+
+    def __rshift__(self, other):
+        raise NotImplementedError("rshift Not Implemented Yet!")
 
 def wrap(val):
     if isinstance(val, SymbolicObject):

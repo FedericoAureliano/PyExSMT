@@ -16,6 +16,6 @@ pysmt
 ########
 # PyExSMT
 ########
-temp.txt
+tmp.txt
 *.py.dot
 *.py.dot.png

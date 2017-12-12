@@ -28,7 +28,10 @@ class Constraint:
 
     def getAssertsAndQuery(self):
         self.processed = True
+        asserts = self.get_asserts()
+        return asserts, self.predicate	       
 
+    def get_asserts(self):
         # collect the assertions
         asserts = []
         tmp = self.parent
@@ -36,7 +39,7 @@ class Constraint:
             asserts.append(tmp.predicate)
             tmp = tmp.parent
 
-        return asserts, self.predicate	       
+        return asserts
 
     def getLength(self):
         if self.parent == None:

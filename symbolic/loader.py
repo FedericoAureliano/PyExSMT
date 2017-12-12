@@ -1,5 +1,6 @@
 # Copyright: copyright.txt
 
+import logging
 import inspect
 import re
 import os
@@ -72,7 +73,7 @@ class Loader:
         if "expected_result_set" in self.app.__dict__:
             return self._check(return_vals, self.app.__dict__["expected_result_set"](),False)
         else:
-            print(self._fileName + ".py contains no expected_result function")
+            logging.info(self._fileName + ".py contains no expected_result function")
             return None
 
     # -- private

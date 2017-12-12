@@ -11,7 +11,7 @@ from pysmt.shortcuts import *
 
 
 class ExplorationEngine:
-    def __init__(self, funcinv, solver="z3"):
+    def __init__(self, funcinv, solver="z3", summary = False):
         self.invocation = funcinv
         # the input to the function
         self.symbolic_inputs = {}  # string -> SymbolicObject
@@ -34,6 +34,7 @@ class ExplorationEngine:
         # outputs
         self.generated_inputs = []
         self.execution_return_values = []
+        self.summary = [] if summary else None
 
     def addConstraint(self, constraint):
         logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))
@@ -45,7 +46,7 @@ class ExplorationEngine:
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
             logging.debug("Maximum number of iterations reached, terminating")
-            return self.generated_inputs, self.execution_return_values, self.path
+            return self.generated_inputs, self.execution_return_values, self.path, self.summary
 
         while not self._isExplorationComplete():
             selected = self.constraints_to_solve.popleft()
@@ -68,7 +69,7 @@ class ExplorationEngine:
                 logging.debug("Maximum number of iterations reached, terminating")
                 break
 
-        return self.generated_inputs, self.execution_return_values, self.path
+        return self.generated_inputs, self.execution_return_values, self.path, self.summary
 
     # private
 
@@ -99,8 +100,14 @@ class ExplorationEngine:
         logging.info("USING INPUTS: %s" %(self.generated_inputs[-1]))
         self.path.reset(expected_path)
         ret = self.invocation.callFunction(self.symbolic_inputs)
+        logging.debug("CURRENT CONSTARINT: %s" % (self.path.current_constraint.__repr__()))
         logging.info("RETURN: %s" %(ret))
         self.execution_return_values.append(ret)
+        if not self.summary is None:
+            asserts = self.path.current_constraint.get_asserts() + [self.path.current_constraint.predicate]
+            asserts = [self._predToSMT(p) for p in asserts]
+            logging.debug("PATH: %s" % (asserts))
+            self.summary.append((And(asserts), ret))
 
     def _find_counterexample(self, asserts, query):
         assumptions = [self._predToSMT(p) for p in asserts] + [Not(self._predToSMT(query))]

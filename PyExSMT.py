@@ -18,8 +18,9 @@ usage = "usage: %prog [options] <path to a *.py file>"
 parser = OptionParser(usage=usage)
 
 parser.add_option("-l", "--log", dest="loglevel", action="store", help="Set log level", default="")
-parser.add_option("-s", "--start", dest="entry", action="store", help="Specify entry point", default="")
+parser.add_option("-e", "--entry", dest="entry", action="store", help="Specify entry point", default="")
 parser.add_option("-g", "--graph", dest="dot_graph", action="store_true", help="Generate a DOT graph of execution tree")
+parser.add_option("-s", "--summary", dest="summary", action="store_true", help="Generate a functional summary")
 parser.add_option("-m", "--max-iters", dest="max_iters", type="int", help="Run specified number of iterations", default=0)
 parser.add_option("--cvc", dest="cvc", action="store_true", help="Use the CVC SMT solver instead of Z3", default=False)
 parser.add_option("--z3", dest="cvc", action="store_false", help="Use the Z3 SMT solver")
@@ -39,6 +40,8 @@ if len(args) == 0 or not os.path.exists(args[0]):
 
 solver = "cvc" if options.cvc else "z3"
 
+summary = options.summary
+
 filename = os.path.abspath(args[0])
     
 # Get the object describing the application
@@ -50,10 +53,17 @@ print("Exploring " + app.getFile() + "." + app.getEntry())
 
 result = None
 try:
-    engine = ExplorationEngine(app.createInvocation(), solver=solver)
-    generatedInputs, returnVals, path = engine.explore(options.max_iters)
+    engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
+    generatedInputs, returnVals, path, summary = engine.explore(options.max_iters)
     # check the result
     result = app.executionComplete(returnVals)
+
+    # print summary
+    if not summary is None:
+        print("\nSUMMARY:")
+        for p,e in summary:
+            print("PATH: %s" % p)
+            print("EFFECT: %s\n" % e)
 
     # output DOT graph
     if (options.dot_graph):
