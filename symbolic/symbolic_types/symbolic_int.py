@@ -1,9 +1,41 @@
 # Copyright: copyright.txt
 
-from . symbolic_object import SymbolicObject
+from . symbolic_object import SymbolicObject, wrap
 
-from pysmt.shortcuts import INT
+from pysmt.shortcuts import *
 
 class SymbolicInteger(SymbolicObject):
     def __init__(self, expr, name = "se"):
         SymbolicObject.__init__(self, expr, name, INT)
+
+    ## LOGICAL OPERATORS
+    def __and__(self, other):
+        raise NotImplementedError("and is not implemented for %s!" % self.expr.get_type())
+
+    def __or__(self, other):
+        raise NotImplementedError("or is not implemented for %s!" % self.expr.get_type())
+
+    ## ARITHMETIC OPERATORS
+    def __add__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            raise TypeError("CANNOT '+' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicObject(self.expr + other)
+
+    def __sub__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            raise TypeError("CANNOT '-' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicObject(self.expr - other)
+
+    def __mul__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicObject(self.expr * other)
+
+    def __div__(self, other):
+        other = wrap(other)
+        if self.expr.get_type() != other.get_type():
+            raise TypeError("CANNOT '/' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicObject(self.expr / other)

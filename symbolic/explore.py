@@ -96,18 +96,25 @@ class ExplorationEngine:
 
     def _oneExecution(self,expected_path=None):
         logging.debug("EXPECTED PATH: %s" %(expected_path))
+        
         self._recordInputs()
         logging.info("USING INPUTS: %s" %(self.generated_inputs[-1]))
+        
         self.path.reset(expected_path)
         ret = self.invocation.callFunction(self.symbolic_inputs)
+        
         logging.debug("CURRENT CONSTARINT: %s" % (self.path.current_constraint.__repr__()))
         logging.info("RETURN: %s" %(ret))
-        self.execution_return_values.append(ret)
+
         if not self.summary is None:
             asserts = self.path.current_constraint.get_asserts() + [self.path.current_constraint.predicate]
             asserts = [self._predToSMT(p) for p in asserts]
             logging.debug("PATH: %s" % (asserts))
             self.summary.append((And(asserts), ret))
+        
+        if isinstance(ret, SymbolicObject):
+            ret = ret.get_concr_value()
+        self.execution_return_values.append(ret)
 
     def _find_counterexample(self, asserts, query):
         assumptions = [self._predToSMT(p) for p in asserts] + [Not(self._predToSMT(query))]
@@ -115,10 +122,20 @@ class ExplorationEngine:
         self.solver.solve(assumptions)
 
     def _predToSMT(self, pred):
-        if not pred.result:
-            ret = Not(pred.symtype.expr)
+        t = pred.symtype.expr.get_type()
+        if t == BOOL:
+            if not pred.result:
+                ret = Not(pred.symtype.expr)
+            else:
+                ret = pred.symtype.expr
+        elif t == INT:
+            if not pred.result:
+                ret = Equals(pred.symtype.expr, Int(0))
+            else:
+                ret = NotEquals(pred.symtype.expr, Int(0))
         else:
-            ret = pred.symtype.expr
+            raise NotImplementedError("%s predicate processing not implemented yet" % t)
+
         logging.debug("PREDICATE: %s" %(ret))
         return ret
         
