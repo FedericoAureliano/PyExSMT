@@ -62,7 +62,7 @@ class Loader:
 
     # need these here (rather than inline above) to correctly capture values in lambda
     def _initializeArgumentConcrete(inv, f, val):
-        inv.addArgumentConstructor(f, lambda n,v: val)
+        inv.addArgumentConstructor(f, lambda n: val)
 
     def _initializeArgumentSymbolic(inv, f, st):
         inv.addArgumentConstructor(f, lambda n: st(None, n))
