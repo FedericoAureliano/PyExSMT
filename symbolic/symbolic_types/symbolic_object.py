@@ -42,7 +42,7 @@ class SymbolicObject(object):
         if not SymbolicObject.SOLVER.last_result:
             raise ValueError("SOLVER MUST HAVE A MODEL")
         val = SymbolicObject.SOLVER.get_py_value(self.expr)
-        logging.debug("%s := %s" %(str(self), val))
+        logging.debug("%s := %s" %(self.__repr__(), val))
         return val
 
     def get_vars(self):
@@ -51,7 +51,7 @@ class SymbolicObject(object):
     def symbolicEq(self, other):
         if not isinstance(other,SymbolicObject):
             ret = False
-        ret = str(self.expr) == str(other.expr)
+        ret = self.expr.__repr__() == other.expr.__repr__()
         logging.debug("Checking equality of %s and %s: result is %s" %(self, other, ret))
         return ret
 
@@ -59,10 +59,10 @@ class SymbolicObject(object):
         return hash(self.get_concr_value())
 
     def __str__(self):
-        return self.expr.serialize()
+        return str(self.get_concr_value())
 
     def __repr__(self):
-        return self.__str__()
+        return self.expr.serialize()
 
 
     ## COMPARISON OPERATORS
