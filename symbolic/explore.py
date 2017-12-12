@@ -45,7 +45,7 @@ class ExplorationEngine:
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
             logging.debug("Maximum number of iterations reached, terminating")
-            return self.execution_return_values
+            return self.generated_inputs, self.execution_return_values, self.path
 
         while not self._isExplorationComplete():
             selected = self.constraints_to_solve.popleft()
