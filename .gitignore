@@ -12,3 +12,9 @@ __pycache__
 # Dependencies
 ########
 pysmt
+
+########
+# PyExSMT
+########
+temp.txt
+*.py.dot

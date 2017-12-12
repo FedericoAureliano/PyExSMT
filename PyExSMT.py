@@ -65,6 +65,12 @@ except ImportError as e:
     logging.error(e)
     sys.exit(1)
 
+except NotImplementedError as e:
+    # Some operators are not implemented.
+    # Don't need a stack trace for this.
+    logging.error(e)
+    sys.exit(1)
+
 if result == None or result == True:
     sys.exit(0)
 else:

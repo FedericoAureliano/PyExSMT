@@ -75,7 +75,7 @@ class PathToConstraint:
         if (c.parent == None):
             label = "root"
         else:
-            label = c.predicate.symtype.toString()
+            label = str(c.predicate.symtype)
             if not c.predicate.result:
                 label = "Not("+label+")"
         node = "C" + str(c.id) + " [ label=\"" + label + "\" ];\n"
