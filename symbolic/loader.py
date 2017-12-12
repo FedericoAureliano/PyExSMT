@@ -98,7 +98,7 @@ class Loader:
             print("Expected: %s, found: %s" % (b_e, b_c))
             return False
         else:
-            print("%s Test Passed <---" % self._fileName)
+            print("Test Passed <--- %s" % self._fileName)
             return True
 
 def loaderFactory(filename,entry):

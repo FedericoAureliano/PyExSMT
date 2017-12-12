@@ -20,22 +20,42 @@ class SymbolicInteger(SymbolicObject):
         other = wrap(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '+' %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(self.expr + other)
+        return SymbolicInteger(self.expr + other)
 
     def __sub__(self, other):
         other = wrap(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '-' %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(self.expr - other)
+        return SymbolicInteger(self.expr - other)
 
     def __mul__(self, other):
         other = wrap(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(self.expr * other)
+        return SymbolicInteger(self.expr * other)
 
     def __div__(self, other):
         other = wrap(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '/' %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(self.expr / other)
+        return SymbolicInteger(self.expr / other)
+
+    ## UNARY OPERATORS
+    def __neg__ (self):
+        return SymbolicInteger(Int(0) - self.expr)
+
+    def __pos__ (self):
+        return self
+
+    def __abs__ (self):
+        return SymbolicInteger(Ite(self.expr < 0, -self.expr, self.expr))
+
+    ## REVERSE OPERATORS
+    def __radd__ (self, other):
+        return self.__add__(other)
+    
+    def __rmul__ (self, other):
+        return self.__mul__(other)
+
+    def __rsub__(self, other):
+        return (Int(0)-self).__add__(other)

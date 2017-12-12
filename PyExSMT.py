@@ -37,7 +37,7 @@ options = parser.parse_args()
 if options.loglevel in ["info", "INFO", "i", "I"]:
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 elif options.loglevel in ["debug", "DEBUG", "d", "D"]:
-    logging.basicConfig(level=logging.DEBUG, format='DEBUG:\n%(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='DEBUG:\t%(message)s')
 elif options.loglevel == "":
     pass
 else:

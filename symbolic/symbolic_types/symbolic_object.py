@@ -116,6 +116,16 @@ class SymbolicObject(object):
             raise TypeError("CANNOT OR %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicObject(Or(self.expr, other))
 
+    ## UNARY OPERATORS
+    def __neg__ (self):
+        raise NotImplementedError("neg is not implemented for %s" % self.expr.get_type())
+
+    def __pos__ (self):
+        raise NotImplementedError("pos is not implemented for %s" % self.expr.get_type())
+
+    def __abs__ (self):
+        raise NotImplementedError("abs is not implemented for %s" % self.expr.get_type())
+
     ## ARITHMETIC OPERATORS
     def __add__(self, other):
         raise NotImplementedError("add is not implemented for %s!" % self.expr.get_type())
@@ -155,13 +165,13 @@ class SymbolicObject(object):
 
     ## REVERSE OPERATORS
     def __radd__ (self, other):
-        return self.__add__(other)
+        raise NotImplementedError("radd is not implemented for %s!" % self.expr.get_type())
     
     def __rsub__ (self, other):
         raise NotImplementedError("rsub is not implemented for %s!" % self.expr.get_type())
     
     def __rmul__ (self, other):
-        return self.__mul__(other)
+        raise NotImplementedError("rmul is not implemented for %s!" % self.expr.get_type())
     
     def __rdiv__ (self, other):
         raise NotImplementedError("rdiv is not implemented for %s!" % self.expr.get_type())
@@ -202,4 +212,5 @@ def wrap(val):
     elif isinstance(val, int):
         return Int(val)
     else:
+        print("HERE WITH", type(val))
         raise NotImplementedError("Only integers supported at the moment.")
