@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 from optparse import OptionParser
+from graphviz import Source
 
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
@@ -56,9 +57,9 @@ try:
 
     # output DOT graph
     if (options.dot_graph):
-        file = open(filename+".dot","w")
-        file.write(path.toDot())	
-        file.close()
+        temp = path.toDot()
+        s = Source(temp, filename=filename+".dot", format="png")
+        s.view()
 
 except ImportError as e:
     # createInvocation can raise this

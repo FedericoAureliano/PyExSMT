@@ -18,3 +18,4 @@ pysmt
 ########
 temp.txt
 *.py.dot
+*.py.dot.png
