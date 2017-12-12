@@ -4,7 +4,7 @@ import os
 import re
 import sys
 import subprocess
-from optparse import OptionParser
+from argparse import ArgumentParser
 from sys import platform as _platform
 
 class bcolors:
@@ -19,17 +19,20 @@ def myprint(color, s, *args):
   else:
     print(*args)
 
-usage = "usage: %prog [options] <test directory>"
-parser = OptionParser()
-parser.add_option("--cvc", dest="cvc", action="store_true", help="Use the CVC SMT solver instead of Z3", default=False)
-parser.add_option("--z3", dest="cvc", action="store_false", help="Use the Z3 SMT solver")
-(options, args) = parser.parse_args()
+parser = ArgumentParser()
+parser.add_argument("--max-iters", dest="max_iters", type=int, \
+                                help="Limit number of iterations", default=15)
+parser.add_argument("--solver", dest="solver", action="store", \
+                                help="Choose SMT solver", default="z3")
+parser.add_argument(dest="folder", action="store", help="Select test folder")
 
-if len(args) == 0 or not os.path.exists(args[0]):
+options = parser.parse_args()
+
+if options.folder == "" or not os.path.exists(options.folder):
     parser.error("Please supply directory of tests")
     sys.exit(1)
     
-test_dir = os.path.abspath(args[0])
+test_dir = os.path.abspath(options.folder)
 
 if not os.path.isdir(test_dir):
     print("Please provide a directory of test scripts.")
@@ -42,8 +45,9 @@ for f in files:
     # execute the python runner for this test
         full = os.path.join(test_dir, f)
         with open(os.devnull, 'w') as devnull:
-            solver = "--cvc" if options.cvc else "--z3"
-            ret = subprocess.call([sys.executable, "PyExSMT.py", "--m=25", solver, full], stdout=devnull)
+            ret = subprocess.call([sys.executable, "PyExSMT.py", \
+                            "--max-iters", str(options.max_iters), "--solver", options.solver \
+                            , full], stdout=devnull)
         if (ret == 0):
             myprint(bcolors.SUCCESS, "✓", "Test " + f + " passed.")
         else:

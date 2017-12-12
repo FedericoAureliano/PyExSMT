@@ -4,44 +4,59 @@
 import os
 import sys
 import logging
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
+
+AVAILABLE_SOLVERS = ["z3", "cvc4"]
 
 print("PyExSMT (Python Exploration with SMT)")
 
 sys.path = [os.path.abspath(os.path.join(os.path.dirname(__file__)))] + sys.path
 
-usage = "usage: %prog [options] <path to a *.py file>"
-parser = OptionParser(usage=usage)
+parser = ArgumentParser()
 
-parser.add_option("-l", "--log", dest="loglevel", action="store", help="Set log level", default="")
-parser.add_option("-e", "--entry", dest="entry", action="store", help="Specify entry point", default="")
-parser.add_option("-g", "--graph", dest="dot_graph", action="store_true", help="Generate a DOT graph of execution tree")
-parser.add_option("-s", "--summary", dest="summary", action="store_true", help="Generate a functional summary")
-parser.add_option("-m", "--max-iters", dest="max_iters", type="int", help="Run specified number of iterations", default=0)
-parser.add_option("--cvc", dest="cvc", action="store_true", help="Use the CVC SMT solver instead of Z3", default=False)
-parser.add_option("--z3", dest="cvc", action="store_false", help="Use the Z3 SMT solver")
+parser.add_argument("--log", dest="loglevel", action="store", \
+                                help="Set log level", default="")
+parser.add_argument("--entry", dest="entry", action="store", \
+                                help="Specify entry point", default="")
+parser.add_argument("--graph", dest="dot_graph", action="store_true", \
+                                help="Generate a DOT graph of execution tree")
+parser.add_argument("--summary", dest="summary", action="store_true", \
+                                help="Generate a functional summary")
+parser.add_argument("--max-iters", dest="max_iters", type=int, \
+                                help="Limit number of iterations", default=0)
+parser.add_argument("--solver", dest="solver", action="store", \
+                                help="Choose SMT solver", default="z3")
+parser.add_argument(dest="file", action="store", help="Select Python file")
 
-(options, args) = parser.parse_args()
+options = parser.parse_args()
+
 
 if options.loglevel in ["info", "INFO", "i", "I"]:
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 elif options.loglevel in ["debug", "DEBUG", "d", "D"]:
     logging.basicConfig(level=logging.DEBUG, format='DEBUG:\n%(message)s')
+elif options.loglevel == "":
+    pass
+else:
+    raise ValueError("Unrecognized Log Level")
 
 logging.debug("Log Level Set to Debug")
 
-if len(args) == 0 or not os.path.exists(args[0]):
+if options.file == "" or not os.path.exists(options.file):
     parser.error("Missing app to execute")
     sys.exit(1)
 
-solver = "cvc" if options.cvc else "z3"
+if not options.solver in AVAILABLE_SOLVERS: 
+    raise ValueError("Unrecognized Log Level")
+else:
+    solver = options.solver
 
 summary = options.summary
 
-filename = os.path.abspath(args[0])
+filename = os.path.abspath(options.file)
     
 # Get the object describing the application
 app = loaderFactory(filename,options.entry)
@@ -65,7 +80,7 @@ try:
         result_struct.to_summary()
 
     # output DOT graph
-    if (options.dot_graph):
+    if options.dot_graph:
         result_struct.to_dot(filename)
 
 except ImportError as e:
@@ -85,7 +100,7 @@ except TypeError as e:
     logging.error(e)
     sys.exit(1)
 
-if result == None or result == True:
+if result is None or result:
     sys.exit(0)
 else:
-    sys.exit(1)	
+    sys.exit(1)
