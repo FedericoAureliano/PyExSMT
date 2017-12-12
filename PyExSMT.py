@@ -26,9 +26,9 @@ parser.add_option("--z3", dest="cvc", action="store_false", help="Use the Z3 SMT
 (options, args) = parser.parse_args()
 
 if options.loglevel in ["info", "INFO", "i", "I"]:
-    logging.basicConfig(level=logging.INFO, format='INFO:\t%(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
 elif options.loglevel in ["debug", "DEBUG", "d", "D"]:
-    logging.basicConfig(level=logging.DEBUG, format='DEBUG:\t%(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='DEBUG:\n%(message)s')
 
 logging.debug("Log Level Set to Debug")
 
@@ -66,6 +66,6 @@ except ImportError as e:
     sys.exit(1)
 
 if result == None or result == True:
-    sys.exit(0);
+    sys.exit(0)
 else:
-    sys.exit(1);	
+    sys.exit(1)	

@@ -4,10 +4,8 @@
 
 def elseif(in1):
     if in1 ==  0:
-        print("0")
         return 0
     elif in1 == 1:
-        print("1")
         return 1
     elif in1 == 2:
         return 2

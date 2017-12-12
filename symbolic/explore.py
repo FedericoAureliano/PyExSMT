@@ -9,7 +9,6 @@ from .symbolic_types import symbolic_object, SymbolicObject
 
 from pysmt.shortcuts import *
 
-log = logging.getLogger("se.conc")
 
 class ExplorationEngine:
     def __init__(self, funcinv, solver="z3"):
@@ -37,25 +36,23 @@ class ExplorationEngine:
         self.execution_return_values = []
 
     def addConstraint(self, constraint):
+        logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))
         self.constraints_to_solve.append(constraint)
-        # make sure to remember the input that led to this constraint
-        constraint.inputs = self._getInputs()
 
     def explore(self, max_iterations=0):
         self._oneExecution()
         
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
-            log.debug("Maximum number of iterations reached, terminating")
+            logging.debug("Maximum number of iterations reached, terminating")
             return self.execution_return_values
 
         while not self._isExplorationComplete():
             selected = self.constraints_to_solve.popleft()
             if selected.processed:
-                continue
-            self._setInputs(selected.inputs)			
+                continue		
 
-            log.info("Selected constraint %s" % selected)
+            logging.debug("SELECTED CONSTRAINT: %s" % selected.__repr__())
             asserts, query = selected.getAssertsAndQuery()
             self._find_counterexample(asserts, query)
 
@@ -68,25 +65,20 @@ class ExplorationEngine:
             self.num_processed_constraints += 1
 
             if max_iterations != 0 and iterations >= max_iterations:
-                log.info("Maximum number of iterations reached, terminating")
+                logging.debug("Maximum number of iterations reached, terminating")
                 break
 
         return self.generated_inputs, self.execution_return_values, self.path
 
     # private
-    def _getInputs(self):
-        return self.symbolic_inputs.copy()
-
-    def _setInputs(self,d):
-        self.symbolic_inputs = d
 
     def _isExplorationComplete(self):
         num_constr = len(self.constraints_to_solve)
         if num_constr == 0:
-            log.info("Exploration complete")
+            logging.info("EXPLORATION COMPLETE")
             return True
         else:
-            log.info("%d constraints yet to solve (total: %d, already solved: %d)" % (num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints))
+            logging.debug("%d constraints yet to solve (total: %d, already solved: %d)" % (num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints))
             return False
 
     def _get_concr_value(self,v):
@@ -99,24 +91,27 @@ class ExplorationEngine:
         args = self.symbolic_inputs
         inputs = [(k, self._get_concr_value(args[k])) for k in args]
         self.generated_inputs.append(inputs)
-        logging.info(inputs)
+        logging.debug("RECORDING INPUTS: %s" %(inputs))
 
     def _oneExecution(self,expected_path=None):
+        logging.debug("EXPECTED PATH: %s" %(expected_path))
         self._recordInputs()
+        logging.info("USING INPUTS: %s" %(self.generated_inputs[-1]))
         self.path.reset(expected_path)
         ret = self.invocation.callFunction(self.symbolic_inputs)
-        logging.info(ret)
+        logging.info("RETURN: %s" %(ret))
         self.execution_return_values.append(ret)
 
     def _find_counterexample(self, asserts, query):
         assumptions = [self._predToSMT(p) for p in asserts] + [Not(self._predToSMT(query))]
-        logging.info("Asumptions: %s" %(assumptions))
+        logging.debug("SOLVING: %s" %(assumptions))
         self.solver.solve(assumptions)
 
     def _predToSMT(self, pred):
         if not pred.result:
-            ret = Not(pred.symtype)
-        ret = pred.symtype.expr
-        logging.info("Pred: %s" %(ret))
+            ret = Not(pred.symtype.expr)
+        else:
+            ret = pred.symtype.expr
+        logging.debug("PREDICATE: %s" %(ret))
         return ret
         

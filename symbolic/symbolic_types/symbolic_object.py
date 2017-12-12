@@ -25,14 +25,17 @@ class SymbolicObject(object):
     # to capture the path condition
     def __bool__(self):
         ret = self.get_concr_value()
-        if SymbolicObject.SI != None:
-            SymbolicObject.SI.whichBranch(ret,self)
         if ret == FALSE():
-            return False
+            ret = False
         elif ret == TRUE():
-            return True
+            ret = True
         else:
             raise ValueError("NOT A BOOL!")
+        
+        if SymbolicObject.SI != None:
+            SymbolicObject.SI.whichBranch(ret, self)
+        
+        return ret
 
     def get_concr_value(self):
         if SymbolicObject.SOLVER is None:

@@ -5,8 +5,6 @@ import logging
 from .predicate import Predicate
 from .constraint import Constraint
 
-log = logging.getLogger("se.pathconstraint")
-
 class PathToConstraint:
     def __init__(self, add):
         self.constraints = {}
@@ -41,7 +39,7 @@ class PathToConstraint:
             c = self.current_constraint.addChild(p)
 
             # we add the new constraint to the queue of the engine for later processing
-            log.debug("New constraint: %s" % c)
+            logging.debug("New constraint: %s" % c)
             self.add(c)
             
         # check for path mismatch
@@ -49,9 +47,10 @@ class PathToConstraint:
         # same one, just that the direction taken is the same
         if self.expected_path != None and self.expected_path != []:
             expected = self.expected_path.pop()
-            # while not at the end of the path, we expect the same predicate result
-            # at the end of the path, we expect a different predicate result
+            # while not at the end of the path, we expect the same predicate result.
+            # At the end of the path, we expect a different predicate result
             done = self.expected_path == []
+            logging.debug("DONE: %s; EXP: %s; C: %s" %(done, expected, c))
             if ( not done and expected.result != c.predicate.result or \
                 done and expected.result == c.predicate.result ):
                 print("Replay mismatch (done=",done,")")
@@ -62,7 +61,7 @@ class PathToConstraint:
             # We've already processed both
             cneg.processed = True
             c.processed = True
-            log.debug("Processed constraint: %s" % c)
+            logging.debug("Processed constraint: %s" % c)
 
         self.current_constraint = c
 
