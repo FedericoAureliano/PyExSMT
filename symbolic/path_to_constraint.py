@@ -12,6 +12,7 @@ class PathToConstraint:
         self.root_constraint = Constraint(None, None)
         self.current_constraint = self.root_constraint
         self.expected_path = None
+        self.max_depth = 0
 
     def reset(self,expected):
         self.current_constraint = self.root_constraint
@@ -27,6 +28,10 @@ class PathToConstraint:
     def whichBranch(self, branch, symbolic_type):
         """ This function acts as instrumentation.
         Branch can be either True or False."""
+
+        if self.max_depth > 0 and self.current_constraint.getLength() >= self.max_depth:
+            logging.info("Max Depth (%d) Reached" % self.max_depth)
+            return
 
         # add both possible predicate outcomes to constraint (tree)
         p = Predicate(symbolic_type, branch)

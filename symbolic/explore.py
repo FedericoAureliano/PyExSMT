@@ -39,7 +39,8 @@ class ExplorationEngine:
         logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))
         self.constraints_to_solve.append(constraint)
 
-    def explore(self, max_iterations=0):
+    def explore(self, max_iterations=0, max_depth=0):
+        self.path.max_depth = max_depth
         self._oneExecution()
         
         iterations = 1

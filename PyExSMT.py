@@ -27,6 +27,8 @@ parser.add_argument("--summary", dest="summary", action="store_true", \
                                 help="Generate a functional summary")
 parser.add_argument("--max-iters", dest="max_iters", type=int, \
                                 help="Limit number of iterations", default=0)
+parser.add_argument("--max-depth", dest="max_depth", type=int, \
+                                help="Limit the depth of paths", default=0)
 parser.add_argument("--solver", dest="solver", action="store", \
                                 help="Choose SMT solver", default="z3")
 parser.add_argument(dest="file", action="store", help="Select Python file")
@@ -68,7 +70,7 @@ print("Exploring " + app.getFile() + "." + app.getEntry())
 result = None
 try:
     engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
-    result_struct = engine.explore(options.max_iters)
+    result_struct = engine.explore(options.max_iters, options.max_depth)
 
     return_vals = result_struct.execution_return_values
 
