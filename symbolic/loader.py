@@ -5,8 +5,8 @@ import inspect
 import re
 import os
 import sys
-from .invocation import FunctionInvocation
-from .symbolic_types import SymbolicInteger, getSymbolic
+from symbolic.invocation import FunctionInvocation
+from symbolic.symbolic_types import SymbolicInteger, getSymbolic
 
 # The built-in definition of len wraps the return value in an int() constructor, destroying any symbolic types.
 # By redefining len here we can preserve symbolic integer types.
@@ -30,7 +30,7 @@ class Loader:
         return self._entryPoint
     
     def createInvocation(self):
-        inv = FunctionInvocation(self._execute,self._resetCallback)
+        inv = FunctionInvocation(self._execute,self._resetCallback, self._fileName)
         func = self.app.__dict__[self._entryPoint]
         argspec = inspect.signature(func)
         # check to see if user specified initial values of arguments

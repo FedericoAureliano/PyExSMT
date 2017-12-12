@@ -19,3 +19,8 @@ pysmt
 tmp.txt
 *.py.dot
 *.py.dot.png
+
+########
+# OTHER
+########
+idea.py

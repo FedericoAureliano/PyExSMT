@@ -1,10 +1,13 @@
 import logging
 
-from .symbolic_types import SymbolicObject
+from symbolic.symbolic_types import SymbolicObject
 
 from pysmt.shortcuts import *
 
 def pred_to_SMT(pred):
+    if pred is None:
+        return TRUE()
+
     t = pred.symtype.expr.get_type()
     if t == BOOL:
         if not pred.result:

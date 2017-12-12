@@ -2,7 +2,7 @@ import logging
 from graphviz import Source
 
 from symbolic import pred_to_SMT, get_concr_value
-from .symbolic_types import SymbolicObject
+from symbolic.symbolic_types import SymbolicObject
 
 from pysmt.shortcuts import *
 

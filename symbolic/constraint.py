@@ -2,8 +2,6 @@
 
 import logging
 
-log = logging.getLogger("se.constraint")
-
 class Constraint:
     cnt = 0
     """A constraint is a list of predicates leading to some specific
@@ -33,6 +31,8 @@ class Constraint:
 
     def get_asserts(self):
         # collect the assertions
+        if self.parent is None:
+            return []
         asserts = []
         tmp = self.parent
         while tmp.predicate is not None:

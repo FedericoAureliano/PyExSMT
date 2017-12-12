@@ -1,6 +1,6 @@
 # Copyright: copyright.txt
 
-from . symbolic_object import SymbolicObject, wrap
+from symbolic.symbolic_types.symbolic_object import SymbolicObject, wrap
 
 from pysmt.shortcuts import *
 

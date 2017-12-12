@@ -2,8 +2,11 @@
 
 import logging
 
-from .predicate import Predicate
-from .constraint import Constraint
+from symbolic.predicate import Predicate
+from symbolic.constraint import Constraint
+
+from symbolic import pred_to_SMT
+from pysmt.shortcuts import *
 
 class PathToConstraint:
     def __init__(self, add):
@@ -13,6 +16,7 @@ class PathToConstraint:
         self.current_constraint = self.root_constraint
         self.expected_path = None
         self.max_depth = 0
+        self.mod = None
 
     def reset(self,expected):
         self.current_constraint = self.root_constraint
@@ -30,7 +34,7 @@ class PathToConstraint:
         Branch can be either True or False."""
 
         if self.max_depth > 0 and self.current_constraint.getLength() >= self.max_depth:
-            logging.info("Max Depth (%d) Reached" % self.max_depth)
+            logging.debug("Max Depth (%d) Reached" % self.max_depth)
             return
 
         # add both possible predicate outcomes to constraint (tree)
@@ -41,6 +45,10 @@ class PathToConstraint:
         c = self.current_constraint.findChild(p)
 
         if c is None:
+            asserts = [pred_to_SMT(p) for p in self.current_constraint.get_asserts()]
+            if self.mod is not None and not is_sat(And(self.mod, pred_to_SMT(p), *asserts)):
+                logging.debug("Path pruned by mod (%s): %s %s" % (self.mod, c, p))
+                return
             c = self.current_constraint.addChild(p)
 
             # we add the new constraint to the queue of the engine for later processing

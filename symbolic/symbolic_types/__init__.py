@@ -1,7 +1,7 @@
 # Copyright: see copyright.txt
 
-from .symbolic_int import SymbolicInteger
-from .symbolic_int import SymbolicObject
+from symbolic.symbolic_types.symbolic_int import SymbolicInteger
+from symbolic.symbolic_types.symbolic_int import SymbolicObject
 
 def getSymbolic(v):
     exported = [(int, SymbolicInteger)]

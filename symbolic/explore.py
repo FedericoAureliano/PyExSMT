@@ -3,10 +3,10 @@
 from collections import deque
 import logging
 
-from .path_to_constraint import PathToConstraint
+from symbolic.path_to_constraint import PathToConstraint
 from symbolic import pred_to_SMT
-from .symbolic_types import symbolic_object, SymbolicObject
-from .result import Result
+from symbolic.symbolic_types import symbolic_object
+from symbolic.result import Result
 
 from pysmt.shortcuts import *
 
@@ -39,9 +39,11 @@ class ExplorationEngine:
         logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))
         self.constraints_to_solve.append(constraint)
 
-    def explore(self, max_iterations=0, max_depth=0):
+    def explore(self, max_iterations=0, max_depth=0, funcs=[], mod=None):
         self.path.max_depth = max_depth
-        self._oneExecution()
+        self.path.mod = mod
+
+        self._oneExecution(funcs)
         
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
@@ -60,7 +62,7 @@ class ExplorationEngine:
             if not self.solver.last_result:
                 continue
 
-            self._oneExecution(selected)
+            self._oneExecution(funcs, selected)
 
             iterations += 1			
             self.num_processed_constraints += 1
@@ -82,14 +84,14 @@ class ExplorationEngine:
             logging.debug("%d constraints yet to solve (total: %d, already solved: %d)" % (num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints))
             return False
 
-    def _oneExecution(self,expected_path=None):
+    def _oneExecution(self, funcs=[], expected_path=None):
         logging.debug("EXPECTED PATH: %s" %(expected_path))
         
         self.result.record_inputs(self.symbolic_inputs)
         logging.info("USING INPUTS: %s" %(self.result.generated_inputs[-1]))
         
         self.path.reset(expected_path)
-        ret = self.invocation.callFunction(self.symbolic_inputs)
+        ret = self.invocation.callFunction(self.symbolic_inputs, funcs)
         
         logging.debug("CURRENT CONSTARINT: %s" % (self.path.current_constraint.__repr__()))
         logging.info("RETURN: %s" %(ret))

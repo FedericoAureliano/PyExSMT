@@ -9,6 +9,8 @@ from argparse import ArgumentParser
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
 
+from pysmt.shortcuts import *
+
 AVAILABLE_SOLVERS = ["z3", "cvc4"]
 
 print("PyExSMT (Python Exploration with SMT)")
@@ -69,6 +71,9 @@ print("Exploring " + app.getFile() + "." + app.getEntry())
 
 result = None
 try:
+    # ftype = FunctionType(INT, [INT, INT])
+    # f = Symbol("lib", ftype)
+    
     engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
     result_struct = engine.explore(options.max_iters, options.max_depth)
 
