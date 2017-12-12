@@ -37,23 +37,19 @@ class Loader:
         if "concrete_args" in func.__dict__:
             for (f,v) in func.concrete_args.items():
                 if not f in argspec.parameters:
-                    print("Error in @concrete: " +  self._entryPoint + " has no argument named " + f)
-                    raise ImportError()
+                    raise ImportError("Error in @concrete: " +  self._entryPoint + " has no argument named " + f)
                 else:
                     Loader._initializeArgumentConcrete(inv,f,v)
         if "symbolic_args" in func.__dict__:
             for (f,v) in func.symbolic_args.items():
                 if not f in argspec.parameters:
-                    print("Error (@symbolic): " +  self._entryPoint + " has no argument named " + f)
-                    raise ImportError()
+                    raise ImportError("Error (@symbolic): " +  self._entryPoint + " has no argument named " + f)
                 elif f in inv.getNames():
-                    print("Argument " + f + " defined in both @concrete and @symbolic")
-                    raise ImportError()
+                    raise ImportError("Argument " + f + " defined in both @concrete and @symbolic")
                 else:
                     s = getSymbolic(v)
                     if (s == None):
-                        print("Error at argument " + f + " of entry point " + self._entryPoint + " : no corresponding symbolic type found for type " + str(type(v)))
-                        raise ImportError()
+                        raise ImportError("Error at argument " + f + " of entry point " + self._entryPoint + " : no corresponding symbolic type found for type " + str(type(v)))
                     Loader._initializeArgumentSymbolic(inv, f, s)
         for a in argspec.parameters:
             if not a in inv.getNames():
@@ -81,19 +77,15 @@ class Loader:
     def _resetCallback(self,firstpass=False):
         self.app = None
         if firstpass and self._fileName in sys.modules:
-            print("There already is a module loaded named " + self._fileName)
-            raise ImportError()
+            raise ImportError("There already is a module loaded named " + self._fileName)
         try:
             if (not firstpass and self._fileName in sys.modules):
                 del(sys.modules[self._fileName])
             self.app =__import__(self._fileName)
             if not self._entryPoint in self.app.__dict__ or not callable(self.app.__dict__[self._entryPoint]):
-                print("File " +  self._fileName + ".py doesn't contain a function named " + self._entryPoint)
-                raise ImportError()
+                raise ImportError("File " +  self._fileName + ".py doesn't contain a function named " + self._entryPoint)
         except Exception as arg:
-            print("Couldn't import " + self._fileName)
-            print(arg)
-            raise ImportError()
+            raise ImportError("Couldn't import " + self._fileName + "\n" + arg)
 
     def _execute(self, **args):
         return self.app.__dict__[self._entryPoint](**args)
@@ -102,11 +94,11 @@ class Loader:
         b_c = _to_bag(computed)
         b_e = _to_bag(expected)
         if as_bag and b_c != b_e or not as_bag and set(computed) != set(expected):
-            print("-------------------> %s test failed <---------------------" % self._fileName)
+            print("-------------------> %s Test Failed <---------------------" % self._fileName)
             print("Expected: %s, found: %s" % (b_e, b_c))
             return False
         else:
-            print("%s test passed <---" % self._fileName)
+            print("%s Test Passed <---" % self._fileName)
             return True
 
 def loaderFactory(filename,entry):

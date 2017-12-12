@@ -5,7 +5,6 @@ import os
 import sys
 import logging
 from optparse import OptionParser
-from graphviz import Source
 
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
@@ -54,22 +53,20 @@ print("Exploring " + app.getFile() + "." + app.getEntry())
 result = None
 try:
     engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
-    generatedInputs, returnVals, path, summary = engine.explore(options.max_iters)
+    result_struct = engine.explore(options.max_iters)
+
+    return_vals = result_struct.execution_return_values
+
     # check the result
-    result = app.executionComplete(returnVals)
+    result = app.executionComplete(return_vals)
 
     # print summary
-    if not summary is None:
-        print("\nSUMMARY:")
-        for p,e in summary:
-            print("PATH: %s" % p)
-            print("EFFECT: %s\n" % e.__repr__())
+    if summary:
+        result_struct.to_summary()
 
     # output DOT graph
     if (options.dot_graph):
-        temp = path.toDot()
-        s = Source(temp, filename=filename+".dot", format="png")
-        s.view()
+        result_struct.to_dot(filename)
 
 except ImportError as e:
     # createInvocation can raise this

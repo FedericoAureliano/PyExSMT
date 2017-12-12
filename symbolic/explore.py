@@ -4,8 +4,9 @@ from collections import deque
 import logging
 
 from .path_to_constraint import PathToConstraint
-from .invocation import FunctionInvocation
+from symbolic import pred_to_SMT
 from .symbolic_types import symbolic_object, SymbolicObject
+from .result import Result
 
 from pysmt.shortcuts import *
 
@@ -32,9 +33,7 @@ class ExplorationEngine:
         symbolic_object.SymbolicObject.SOLVER = self.solver 
 
         # outputs
-        self.generated_inputs = []
-        self.execution_return_values = []
-        self.summary = [] if summary else None
+        self.result = Result(self.path, summary)
 
     def addConstraint(self, constraint):
         logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))
@@ -46,7 +45,7 @@ class ExplorationEngine:
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
             logging.debug("Maximum number of iterations reached, terminating")
-            return self.generated_inputs, self.execution_return_values, self.path, self.summary
+            return self.result
 
         while not self._isExplorationComplete():
             selected = self.constraints_to_solve.popleft()
@@ -69,7 +68,7 @@ class ExplorationEngine:
                 logging.debug("Maximum number of iterations reached, terminating")
                 break
 
-        return self.generated_inputs, self.execution_return_values, self.path, self.summary
+        return self.result
 
     # private
 
@@ -82,23 +81,11 @@ class ExplorationEngine:
             logging.debug("%d constraints yet to solve (total: %d, already solved: %d)" % (num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints))
             return False
 
-    def _get_concr_value(self,v):
-        if isinstance(v,SymbolicObject):
-            return v.get_concr_value()
-        else:
-            return v
-
-    def _recordInputs(self):
-        args = self.symbolic_inputs
-        inputs = [(k, self._get_concr_value(args[k])) for k in args]
-        self.generated_inputs.append(inputs)
-        logging.debug("RECORDING INPUTS: %s" %(inputs))
-
     def _oneExecution(self,expected_path=None):
         logging.debug("EXPECTED PATH: %s" %(expected_path))
         
-        self._recordInputs()
-        logging.info("USING INPUTS: %s" %(self.generated_inputs[-1]))
+        self.result.record_inputs(self.symbolic_inputs)
+        logging.info("USING INPUTS: %s" %(self.result.generated_inputs[-1]))
         
         self.path.reset(expected_path)
         ret = self.invocation.callFunction(self.symbolic_inputs)
@@ -106,36 +93,10 @@ class ExplorationEngine:
         logging.debug("CURRENT CONSTARINT: %s" % (self.path.current_constraint.__repr__()))
         logging.info("RETURN: %s" %(ret))
 
-        if not self.summary is None:
-            asserts = self.path.current_constraint.get_asserts() + [self.path.current_constraint.predicate]
-            asserts = [self._predToSMT(p) for p in asserts]
-            logging.debug("PATH: %s" % (asserts))
-            self.summary.append((And(asserts), ret))
-        
-        if isinstance(ret, SymbolicObject):
-            ret = ret.get_concr_value()
-        self.execution_return_values.append(ret)
+        self.result.record_output(ret)
 
     def _find_counterexample(self, asserts, query):
-        assumptions = [self._predToSMT(p) for p in asserts] + [Not(self._predToSMT(query))]
+        assumptions = [pred_to_SMT(p) for p in asserts] + [Not(pred_to_SMT(query))]
         logging.debug("SOLVING: %s" %(assumptions))
         self.solver.solve(assumptions)
 
-    def _predToSMT(self, pred):
-        t = pred.symtype.expr.get_type()
-        if t == BOOL:
-            if not pred.result:
-                ret = Not(pred.symtype.expr)
-            else:
-                ret = pred.symtype.expr
-        elif t == INT:
-            if not pred.result:
-                ret = Equals(pred.symtype.expr, Int(0))
-            else:
-                ret = NotEquals(pred.symtype.expr, Int(0))
-        else:
-            raise NotImplementedError("%s predicate processing not implemented yet" % t)
-
-        logging.debug("PREDICATE: %s" %(ret))
-        return ret
-        
