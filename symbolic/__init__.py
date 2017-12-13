@@ -8,19 +8,10 @@ def pred_to_SMT(pred):
     if pred is None:
         return TRUE()
 
-    t = pred.symtype.expr.get_type()
-    if t == BOOL:
-        if not pred.result:
-            ret = Not(pred.symtype.expr)
-        else:
-            ret = pred.symtype.expr
-    elif t == INT:
-        if not pred.result:
-            ret = Equals(pred.symtype.expr, Int(0))
-        else:
-            ret = NotEquals(pred.symtype.expr, Int(0))
+    if not pred.result:
+        ret = Not(pred.symtype.expr)
     else:
-        raise NotImplementedError("%s predicate processing not implemented yet" % t)
+        ret = pred.symtype.expr
 
     logging.debug("PREDICATE: %s" %(ret))
     return ret

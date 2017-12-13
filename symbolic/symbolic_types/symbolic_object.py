@@ -25,15 +25,19 @@ class SymbolicObject(object):
     # Python execution (if, while, and, or). This allows us
     # to capture the path condition
     def __bool__(self):
-        ret = self.get_concr_value()
-        if ret == FALSE() or ret == 0:
-            ret = False
+        t = self.expr.get_type()
+        if t == BOOL:
+            obj = self
+        elif t == INT:
+            obj = SymbolicObject(NotEquals(self.expr, Int(0)))
         else:
-            ret = True
+            raise NotImplementedError("%s not supported in conditional yet" % t)
+
+        ret = obj.get_concr_value()
 
         if SymbolicObject.SI != None:
-            SymbolicObject.SI.whichBranch(ret, self)
-        
+            SymbolicObject.SI.whichBranch(ret, obj)
+
         return ret
 
     def get_concr_value(self):
@@ -42,7 +46,6 @@ class SymbolicObject(object):
         if not SymbolicObject.SOLVER.last_result:
             raise ValueError("SOLVER MUST HAVE A MODEL")
         val = SymbolicObject.SOLVER.get_py_value(self.expr)
-        logging.debug("%s := %s" %(self.__repr__(), val))
         return val
 
     def get_vars(self):
@@ -52,7 +55,7 @@ class SymbolicObject(object):
         if not isinstance(other,SymbolicObject):
             ret = False
         ret = self.expr.__repr__() == other.expr.__repr__()
-        logging.debug("Checking equality of %s and %s: result is %s" %(self, other, ret))
+        logging.debug("Checking equality of %s and %s: result is %s" %(self.__repr__(), other.__repr__(), ret))
         return ret
 
     def __hash__(self):

@@ -73,9 +73,12 @@ result = None
 try:
     # ftype = FunctionType(INT, [INT, INT])
     # f = Symbol("lib", ftype)
+
+    # def func(x,y):
+    #     return f(x.expr, y.expr)
     
     engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
-    result_struct = engine.explore(options.max_iters, options.max_depth)
+    result_struct = engine.explore(options.max_iters, options.max_depth)#, [("lib", func)])
 
     return_vals = result_struct.execution_return_values
 
