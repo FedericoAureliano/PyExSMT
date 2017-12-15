@@ -81,6 +81,8 @@ if not options.uninterp is None:
     ftype = FunctionType(*func_types)
     f = Symbol(options.uninterp[0], ftype)
     def wrapper(*args):
+        # IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
+        # AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
         args = [a.expr for a in args]
         return f(*args)
     funcs = [(module_func, wrapper)]
