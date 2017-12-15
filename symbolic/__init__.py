@@ -1,9 +1,13 @@
 import logging
 import re
+import sys
 
 from symbolic.symbolic_types import SymbolicObject
+from symbolic.symbolic_types.symbolic_object import wrap
 
 from pysmt.shortcuts import *
+
+TYPES ={"INT": INT, "BOOL": BOOL, "REAL":REAL}
 
 def pred_to_SMT(pred):
     if pred is None:
@@ -23,10 +27,6 @@ def get_concr_value(v):
     else:
         return v
 
-types ={"INT": INT,\
-        "int": INT,\
-        "Int": INT}
-
 def parse_types(type_list):
     '''
     take a list of two strings, type_list.
@@ -36,7 +36,31 @@ def parse_types(type_list):
     Return the correct type list.
     E.g. [INT, [INT, INT]]
     '''
-    return_type = types[type_list[0]]
-    arg_types = re.findall('\w+', type_list[1])
-    arg_types = [types[a] for a in arg_types]
-    return [return_type, arg_types]
+    try:
+        return_type = TYPES[type_list[0].upper()]
+        arg_types = re.findall('\w+', type_list[1])
+        arg_types = [TYPES[a.upper()] for a in arg_types]
+        return [return_type, arg_types]
+    except KeyError as e:
+        logging.error("Unsupported types in uniterpreted function definition: %s. \
+        \nSupported types are:%s" % (type_list, list(TYPES.keys())))
+        sys.exit(-1)
+
+def uninterp_func_pair(definition, module):
+    funcs = [] 
+    if not definition is None:
+        module_func = module+"."+definition[0]
+        func_types = parse_types(definition[1:])
+        ftype = FunctionType(*func_types)
+        f = Symbol(definition[0], ftype)
+        def wrapper(*args):
+            # IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
+            # AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
+            args = [wrap(a) for a in args]
+            try:
+                return f(*args)
+            except Exception:
+                logging.error("Failed to call %s of type %s with args %s." %(f, ftype, [a.get_type() for a in args]))
+                sys.exit(-1)
+        funcs = [(module_func, wrapper)]
+    return funcs

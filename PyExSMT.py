@@ -7,7 +7,7 @@ import logging
 from argparse import ArgumentParser
 import re
 
-from symbolic import parse_types
+from symbolic import parse_types, uninterp_func_pair
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
 
@@ -74,18 +74,7 @@ if app == None:
 
 print("Exploring " + app.getFile() + "." + app.getEntry())
 
-funcs = []
-if not options.uninterp is None:
-    module_func = app.getFile()+"."+options.uninterp[0]
-    func_types = parse_types(options.uninterp[1:])
-    ftype = FunctionType(*func_types)
-    f = Symbol(options.uninterp[0], ftype)
-    def wrapper(*args):
-        # IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
-        # AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
-        args = [a.expr for a in args]
-        return f(*args)
-    funcs = [(module_func, wrapper)]
+funcs = uninterp_func_pair(options.uninterp, app.getFile())
 
 result = None
 try:

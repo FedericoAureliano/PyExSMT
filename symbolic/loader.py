@@ -72,18 +72,6 @@ class Loader:
             logging.info(self._fileName + ".py contains no expected_result function")
             return None
 
-
-    def generate_uninterp(self, name, func_type):
-        '''
-        func_type should be a list [a,[b0, b1, ...]]
-        where a is the return type and the bs are the
-        argument types.
-        '''
-        argspec = inspect.signature(self.app.__dict__[name])
-        argspec.parameters
-
-
-
     # -- private
 
     def _resetCallback(self,firstpass=False):

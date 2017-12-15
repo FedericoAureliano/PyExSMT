@@ -17,7 +17,7 @@ class FunctionInvocation:
         '''
         self.reset()
         with ExitStack() as stack:
-            [stack.enter_context(patch(cf, lf)) for cf, lf in funcs]
+            [stack.enter_context(patch(cf, lf, create=True)) for cf, lf in funcs]
             ret = self.function(**args)
         return ret
 
