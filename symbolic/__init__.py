@@ -3,6 +3,7 @@ import re
 import sys
 
 from symbolic.symbolic_types import SymbolicObject
+from symbolic.symbolic_types.symbolic_int import SymbolicInteger
 from symbolic.symbolic_types.symbolic_object import wrap
 
 from pysmt.shortcuts import *
@@ -58,9 +59,20 @@ def uninterp_func_pair(definition, module):
             # AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
             args = [wrap(a) for a in args]
             try:
-                return f(*args)
-            except Exception:
+                ret = f(*args)
+                return get_symbolic_from_expr(ret)
+            except Exception as e:
+                print(e)
                 logging.error("Failed to call %s of type %s with args %s." %(f, ftype, [a.get_type() for a in args]))
                 sys.exit(-1)
         funcs = [(module_func, wrapper)]
     return funcs
+
+def get_symbolic_from_expr(expr):
+    if expr.get_type().is_int_type():
+        return SymbolicInteger(expr)
+    elif expr.get_type().is_bool_type():
+        return SymbolicObject(expr)
+    else:
+        logging.error("TYPE NOT FOUND: %s" % expr.get_type())
+        sys.exit(-1)

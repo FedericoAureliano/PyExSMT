@@ -217,5 +217,4 @@ def wrap(val):
     elif isinstance(val, bool):
         return TRUE() if val else FALSE()
     else:
-        print("HERE WITH", type(val))
         raise NotImplementedError("Only integers supported at the moment.")

@@ -13,8 +13,6 @@ from symbolic.explore import ExplorationEngine
 
 from pysmt.shortcuts import *
 
-AVAILABLE_SOLVERS = ["z3", "cvc4"]
-
 print("PyExSMT (Python Exploration with SMT)")
 
 sys.path = [os.path.abspath(os.path.join(os.path.dirname(__file__)))] + sys.path
@@ -50,7 +48,8 @@ elif options.loglevel in ["debug", "DEBUG", "d", "D"]:
 elif options.loglevel == "":
     pass
 else:
-    raise ValueError("Unrecognized Log Level")
+    logging.error("Unrecognized Log Level")
+    sys.exit(-1)
 
 logging.debug("Log Level Set to Debug")
 
@@ -58,8 +57,9 @@ if options.file == "" or not os.path.exists(options.file):
     parser.error("Missing app to execute")
     sys.exit(1)
 
-if not options.solver in AVAILABLE_SOLVERS: 
-    raise ValueError("Unrecognized Log Level")
+if not options.solver in get_env().factory.all_solvers(): 
+    logging.error("Solver %s not available" % options.solver)
+    sys.exit(-1)
 else:
     solver = options.solver
 
