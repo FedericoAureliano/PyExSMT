@@ -5,7 +5,9 @@ import os
 import sys
 import logging
 from argparse import ArgumentParser
+import re
 
+from symbolic import parse_types
 from symbolic.loader import *
 from symbolic.explore import ExplorationEngine
 
@@ -21,6 +23,9 @@ parser = ArgumentParser()
 
 parser.add_argument("--log", dest="loglevel", action="store", \
                                 help="Set log level", default="")
+parser.add_argument('--uninterp', dest="uninterp", nargs=3, \
+                                metavar=('name', 'return_type', 'arg_types'), \
+                                help='<func_name> <return_type> <arg_types>')
 parser.add_argument("--entry", dest="entry", action="store", \
                                 help="Specify entry point", default="")
 parser.add_argument("--graph", dest="dot_graph", action="store_true", \
@@ -69,16 +74,21 @@ if app == None:
 
 print("Exploring " + app.getFile() + "." + app.getEntry())
 
+funcs = []
+if not options.uninterp is None:
+    module_func = app.getFile()+"."+options.uninterp[0]
+    func_types = parse_types(options.uninterp[1:])
+    ftype = FunctionType(*func_types)
+    f = Symbol(options.uninterp[0], ftype)
+    def wrapper(*args):
+        args = [a.expr for a in args]
+        return f(*args)
+    funcs = [(module_func, wrapper)]
+
 result = None
 try:
-    # ftype = FunctionType(INT, [INT, INT])
-    # f = Symbol("lib", ftype)
-
-    # def func(x,y):
-    #     return f(x.expr, y.expr)
-    
     engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
-    result_struct = engine.explore(options.max_iters, options.max_depth)#, [("lib", func)])
+    result_struct = engine.explore(options.max_iters, options.max_depth, funcs)
 
     return_vals = result_struct.execution_return_values
 

@@ -30,7 +30,7 @@ class Loader:
         return self._entryPoint
     
     def createInvocation(self):
-        inv = FunctionInvocation(self._execute,self._resetCallback, self._fileName)
+        inv = FunctionInvocation(self._execute,self._resetCallback)
         func = self.app.__dict__[self._entryPoint]
         argspec = inspect.signature(func)
         # check to see if user specified initial values of arguments
@@ -71,6 +71,18 @@ class Loader:
         else:
             logging.info(self._fileName + ".py contains no expected_result function")
             return None
+
+
+    def generate_uninterp(self, name, func_type):
+        '''
+        func_type should be a list [a,[b0, b1, ...]]
+        where a is the return type and the bs are the
+        argument types.
+        '''
+        argspec = inspect.signature(self.app.__dict__[name])
+        argspec.parameters
+
+
 
     # -- private
 
