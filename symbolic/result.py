@@ -43,14 +43,19 @@ class Result(object):
             c = queue.popleft()
             queue.extend(c.children)
             if c.predicate is None:
-                continue
-            rep = c.predicate.symtype.__repr__()
+                rep = "ROOT"
+            else:
+                rep = c.predicate.symtype.__repr__()
             if not rep in graph:
                 #initialize node with no edges out
                 graph[rep] = [None, None]
-            if c.parent is not None and c.parent.predicate is not None:
-                prep = c.parent.predicate.symtype.__repr__()
-                slot = 1 if c.parent.predicate.result else 0
+            if c.parent is not None:
+                if c.parent.predicate is None:
+                    prep = "ROOT"
+                    slot = 1
+                else:
+                    prep = c.parent.predicate.symtype.__repr__()
+                    slot = 1 if c.parent.predicate.result else 0
                 graph[prep][slot] = rep
         return graph
 
