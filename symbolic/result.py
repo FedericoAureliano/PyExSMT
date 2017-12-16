@@ -31,46 +31,29 @@ class Result(object):
         self.execution_return_values.append(ret)
 
     def to_dot(self, filename):
-        graph = self.get_graph_dict()
-        dot = self.dict_to_dot(graph)
+        header = "digraph {\n"
+        footer = "}\n"
+        dot = self._to_dot(self.path.root_constraint)
+        dot = header + dot + footer
         s = Source(dot, filename=filename+".dot", format="png")
         s.view()
 
-    def get_graph_dict(self):
-        graph = {} #nodes are keys, edges are elements of the list items
-        queue = deque([self.path.root_constraint])
-        while len(queue) > 0:
-            c = queue.popleft()
-            queue.extend(c.children)
-            if c.predicate is None:
-                rep = "ROOT"
-            else:
-                rep = c.predicate.symtype.__repr__()
-            if not rep in graph:
-                #initialize node with no edges out
-                graph[rep] = [None, None]
-            if c.parent is not None:
-                if c.parent.predicate is None:
-                    prep = "ROOT"
-                    slot = 1
-                else:
-                    prep = c.parent.predicate.symtype.__repr__()
-                    slot = 1 if c.parent.predicate.result else 0
-                graph[prep][slot] = rep
-        return graph
-
-    def dict_to_dot(self, graph):
-        header = "digraph {\n"
-        footer = "\n}\n"
-        dot = ""
-        for node, edges in graph.items():
-            dot += "\"" + node + "\" [ label=\"" + node + "\" ];\n"
-            for result in range(2):
-                edge = edges[result]
-                if edge is None:
-                    continue
-                dot += "\"" + node + "\"  -> " + "\"" + edge + "\" [ label=\"" + str(result) + "\" ];\n"
-        return header + dot + footer
+    def _to_dot(self, node, level = 0):
+        if node.predicate is None:
+            rep = "ROOT"
+        else:
+            rep = repr(node.predicate.symtype)
+        dot = "\"%s%d\" [ label=\"%s\" ];\n" % (rep, level, rep)
+        for child in node.children:
+            temp = self._to_dot(child, level+1)
+            if temp not in dot:
+                dot += temp
+            crep = repr(child.predicate.symtype)
+            slot = 1 if node.predicate is None or node.predicate.result else 0
+            temp = "\"%s%d\" -> \"%s%d\" [ label=\"%d\" ];\n" %(rep, level, crep, level+1, slot)
+            if temp not in dot:
+                dot += temp
+        return dot
 
     def to_summary(self):
         print("\nSUMMARY:")
