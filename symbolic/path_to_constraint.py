@@ -77,20 +77,3 @@ class PathToConstraint:
             logging.debug("Processed constraint: %s" % c)
 
         self.current_constraint = c
-
-    def toDot(self):
-        # print the thing into DOT format
-        header = "digraph {\n"
-        footer = "\n}\n"
-        return header + self._toDot(self.root_constraint) + footer
-
-    def _toDot(self,c):
-        if (c.parent == None):
-            label = "root"
-        else:
-            label = c.predicate.symtype.__repr__()
-            if not c.predicate.result:
-                label = "Not("+label+")"
-        node = "C" + c.id.__repr__() + " [ label=\"" + label + "\" ];\n"
-        edges = [ "C" + c.id.__repr__() + " -> " + "C" + child.id.__repr__() + ";\n" for child in c.children ]
-        return node + "".join(edges) + "".join([ self._toDot(child) for child in c.children ])
