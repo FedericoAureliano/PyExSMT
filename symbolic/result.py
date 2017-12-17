@@ -46,12 +46,12 @@ class Result(object):
                 if child is None:
                     continue
                 crep = child[0] if isinstance(child, list) else child
-                crep = str(crep).replace('"', '')
+                crep = str(crep).replace('"', '\\\"')
                 dot += "\"%s%d\" -> \"%s%d\" [ label=\"%d\" ];\n" %(rep, level, crep, level+1, slot % 2)
                 dot += self._to_dot(child, level+1)
             return dot
         elif list_rep is not None:
-            list_rep = str(list_rep).replace('"', '')
+            list_rep = str(list_rep).replace('"', '\\\"')
             return "\"%s%d\" [ label=\"%s\" ];\n" % (list_rep, level, list_rep)
         else:
             return ""
