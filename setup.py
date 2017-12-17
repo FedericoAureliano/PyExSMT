@@ -15,4 +15,8 @@ setup(
     packages     = find_packages(),
     package_dir  = {'pyexsmt': 'pyexsmt'},
     dependency_links=['https://github.com/pysmt/pysmt'],
+    install_requires=[
+        'mock',
+        'pysmt>=0.7'
+    ]
 )
