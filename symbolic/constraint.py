@@ -25,7 +25,7 @@ class Constraint:
         else:
             return False
 
-    def getAssertsAndQuery(self):
+    def get_asserts_and_query(self):
         self.processed = True
         asserts = self.get_asserts()
         return asserts, self.predicate	       
@@ -42,13 +42,13 @@ class Constraint:
 
         return asserts
 
-    def getLength(self):
+    def get_length(self):
         if self.parent == None:
             return 0
-        return 1 + self.parent.getLength()
+        return 1 + self.parent.get_length()
 
     def __str__(self):
-        return str(self.predicate) + "  (processed: %s, path_len: %d)" % (self.processed,self.getLength())
+        return str(self.predicate) + "  (processed: %s, path_len: %d)" % (self.processed,self.get_length())
 
     def __repr__(self):
         s = repr(self.predicate) + " (processed: %s)" % (self.processed)
@@ -56,14 +56,14 @@ class Constraint:
             s += "\n  path: %s" % repr(self.parent)
         return s
 
-    def findChild(self, predicate):
+    def find_child(self, predicate):
         for c in self.children:
             if predicate == c.predicate:
                 return c
         return None
 
-    def addChild(self, predicate):
-        assert(self.findChild(predicate) is None)
+    def add_child(self, predicate):
+        assert(self.find_child(predicate) is None)
         c = Constraint(self, predicate)
         self.children.append(c)
         return c

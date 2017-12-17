@@ -9,7 +9,7 @@ class FunctionInvocation:
         self.reset = reset
         self.arg_constructor = {}
 
-    def callFunction(self, args, funcs=[]):
+    def call_function(self, args, funcs=[]):
         '''
         funcs should be a list of pairs. 
         Left element is a concrete function
@@ -21,11 +21,11 @@ class FunctionInvocation:
             ret = self.function(**args)
         return ret
 
-    def addArgumentConstructor(self, name, constructor):
+    def add_arg_constructor(self, name, constructor):
         self.arg_constructor[name] = constructor
 
-    def getNames(self):
+    def get_names(self):
         return self.arg_constructor.keys()
 
-    def createArgumentValue(self, name):
+    def create_arg_value(self, name):
         return self.arg_constructor[name](name)

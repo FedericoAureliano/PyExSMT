@@ -3,7 +3,7 @@
 from symbolic.symbolic_types.symbolic_int import SymbolicInteger
 from symbolic.symbolic_types.symbolic_int import SymbolicObject
 
-def getSymbolic(v):
+def get_symbolic(v):
     exported = [(int, SymbolicInteger), (bool, SymbolicObject)]
     for (t, s) in exported:
         if isinstance(v, t):

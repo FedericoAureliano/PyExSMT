@@ -7,12 +7,9 @@ class Predicate:
         self.symtype = st
         self.result = result
 
-    def get_vars(self):
-        return self.symtype.get_vars()
-
     def __eq__(self, other):
         if isinstance(other, Predicate):
-            res = self.result == other.result and self.symtype.symbolicEq(other.symtype)
+            res = self.result == other.result and self.symtype.symbolic_eq(other.symtype)
             return res
         else:
             return False
@@ -21,13 +18,12 @@ class Predicate:
         return hash(self.symtype)
 
     def __str__(self):
-        return "%s (%s)" % (self.symtype.__repr__(), self.result)
+        return "%s (%s)" % (repr(self.symtype), self.result)
 
     def __repr__(self):
         return self.__str__()
 
     def negate(self):
         """Negates the current predicate"""
-        assert(self.result is not None)
+        assert self.result is not None
         self.result = not self.result
-

@@ -8,7 +8,7 @@ from pysmt.shortcuts import *
 # it also tracks the corresponding concrete value for the expression (aka concolic execution)
 
 class SymbolicObject(object):
-    def __init__(self, expr, name = "se", ty=INT):
+    def __init__(self, expr, name="se", ty=INT):
         if expr is None:
             self.expr = Symbol(name, ty)
         else:
@@ -16,7 +16,7 @@ class SymbolicObject(object):
 
     # This is set up by the concolic engine to link __bool__ to PathConstraint
     SI = None
-    # This is set up by the concolic engine to link the solver to the variables  
+    # This is set up by the concolic engine to link the solver to the variables
     SOLVER = None
 
     # this is a critical interception point: the __bool__
@@ -35,7 +35,7 @@ class SymbolicObject(object):
         ret = obj.get_concr_value()
 
         if SymbolicObject.SI != None:
-            SymbolicObject.SI.whichBranch(ret, obj)
+            SymbolicObject.SI.which_branch(ret, obj)
 
         return ret
 
@@ -47,14 +47,11 @@ class SymbolicObject(object):
         val = SymbolicObject.SOLVER.get_py_value(self.expr)
         return val
 
-    def get_vars(self):
-        return self.expr.get_free_variables()
-
-    def symbolicEq(self, other):
-        if not isinstance(other,SymbolicObject):
+    def symbolic_eq(self, other):
+        if not isinstance(other, SymbolicObject):
             ret = False
-        ret = self.expr.__repr__() == other.expr.__repr__()
-        logging.debug("Checking equality of %s and %s: result is %s" %(self.__repr__(), other.__repr__(), ret))
+        ret = repr(self.expr) == repr(other.expr)
+        logging.debug("Checking equality of %s and %s: result is %s", repr(self), repr(other), ret)
         return ret
 
     def __hash__(self):
@@ -119,13 +116,13 @@ class SymbolicObject(object):
         return SymbolicObject(Or(self.expr, other))
 
     ## UNARY OPERATORS
-    def __neg__ (self):
+    def __neg__(self):
         raise NotImplementedError("neg is not implemented for %s" % self.expr.get_type())
 
-    def __pos__ (self):
+    def __pos__(self):
         raise NotImplementedError("pos is not implemented for %s" % self.expr.get_type())
 
-    def __abs__ (self):
+    def __abs__(self):
         raise NotImplementedError("abs is not implemented for %s" % self.expr.get_type())
 
     ## ARITHMETIC OPERATORS
@@ -166,49 +163,53 @@ class SymbolicObject(object):
         raise NotImplementedError("rshift is not implemented for %s!" % self.expr.get_type())
 
     ## REVERSE OPERATORS
-    def __radd__ (self, other):
+    def __radd__(self, other):
         raise NotImplementedError("radd is not implemented for %s!" % self.expr.get_type())
-    
-    def __rsub__ (self, other):
+
+    def __rsub__(self, other):
         raise NotImplementedError("rsub is not implemented for %s!" % self.expr.get_type())
-    
-    def __rmul__ (self, other):
+
+    def __rmul__(self, other):
         raise NotImplementedError("rmul is not implemented for %s!" % self.expr.get_type())
-    
-    def __rdiv__ (self, other):
+
+    def __rdiv__(self, other):
         raise NotImplementedError("rdiv is not implemented for %s!" % self.expr.get_type())
-    
-    def __rfloordiv__ (self, other):
+
+    def __rfloordiv__(self, other):
         raise NotImplementedError("rfloordiv is not implemented for %s!" % self.expr.get_type())
-    
-    def __rtruediv__ (self, other):
+
+    def __rtruediv__(self, other):
         raise NotImplementedError("rtruediv is not implemented for %s!" % self.expr.get_type())
-    
-    def __rmod__ (self, other):
+
+    def __rmod__(self, other):
         raise NotImplementedError("rmod is not implemented for %s!" % self.expr.get_type())
-    
-    def __rdivmod__ (self, other):
+
+    def __rdivmod__(self, other):
         raise NotImplementedError("rdivmod is not implemented for %s!" % self.expr.get_type())
-    
-    def __rpow__ (self, other):
+
+    def __rpow__(self, other):
         raise NotImplementedError("rpow is not implemented for %s!" % self.expr.get_type())
-    
-    def __rlshift__ (self, other):
+
+    def __rlshift__(self, other):
         raise NotImplementedError("rlshift is not implemented for %s!" % self.expr.get_type())
-    
-    def __rrshift__ (self, other):
+
+    def __rrshift__(self, other):
         raise NotImplementedError("rrshift is not implemented for %s!" % self.expr.get_type())
-    
-    def __rand__ (self, other):
+
+    def __rand__(self, other):
         return self.__and__(other)
-    
-    def __rxor__ (self, other):
+
+    def __rxor__(self, other):
         raise NotImplementedError("rxor is not implemented for %s!" % self.expr.get_type())
-    
-    def __ror__ (self, other):
+
+    def __ror__(self, other):
         return self.__or__(other)
 
 def wrap(val):
+    '''
+    Take a primitive or a Symbolic object and
+    return a pysmt expression
+    '''
     if isinstance(val, SymbolicObject):
         return val.expr
     elif isinstance(val, int):
