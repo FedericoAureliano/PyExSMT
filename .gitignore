@@ -24,3 +24,7 @@ tmp.txt
 # OTHER
 ########
 idea.py
+*.egg-info
+*.pyc
+dist
+build
