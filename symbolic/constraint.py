@@ -9,6 +9,7 @@ class Constraint:
     def __init__(self, parent, last_predicate):
         self.inputs = None
         self.predicate = last_predicate
+        self.effect = None
         self.processed = False
         self.parent = parent
         self.children = []

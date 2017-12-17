@@ -12,7 +12,7 @@ from pysmt.shortcuts import *
 
 
 class ExplorationEngine:
-    def __init__(self, funcinv, solver="z3", summary = False):
+    def __init__(self, funcinv, solver="z3"):
         self.invocation = funcinv
         # the input to the function
         self.symbolic_inputs = {}  # string -> SymbolicObject
@@ -33,7 +33,7 @@ class ExplorationEngine:
         symbolic_object.SymbolicObject.SOLVER = self.solver 
 
         # outputs
-        self.result = Result(self.path, summary)
+        self.result = Result(self.path)
 
     def addConstraint(self, constraint):
         logging.debug("ADDING CONSTRAINT: %s" %(constraint.__repr__()))

@@ -13,7 +13,6 @@ class SymbolicObject(object):
             self.expr = Symbol(name, ty)
         else:
             self.expr = expr
-        self.val = 0
 
     # This is set up by the concolic engine to link __bool__ to PathConstraint
     SI = None
@@ -217,4 +216,4 @@ def wrap(val):
     elif isinstance(val, bool):
         return TRUE() if val else FALSE()
     else:
-        raise NotImplementedError("Only integers supported at the moment.")
+        raise NotImplementedError("Wrap doesn't support this type! %s." %type(val))

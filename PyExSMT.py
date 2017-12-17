@@ -78,7 +78,7 @@ funcs = uninterp_func_pair(options.uninterp, app.getFile())
 
 result = None
 try:
-    engine = ExplorationEngine(app.createInvocation(), solver=solver, summary=summary)
+    engine = ExplorationEngine(app.createInvocation(), solver=solver)
     result_struct = engine.explore(options.max_iters, options.max_depth, funcs)
 
     return_vals = result_struct.execution_return_values
@@ -88,7 +88,8 @@ try:
 
     # print summary
     if summary:
-        result_struct.to_summary()
+        summary = result_struct.to_summary(Symbol('unkknown', INT))
+        print("\nSummary:\n%s\n" % summary)
 
     # output DOT graph
     if options.dot_graph:
