@@ -17,6 +17,7 @@ setup(
     dependency_links=['https://github.com/pysmt/pysmt'],
     install_requires=[
         'mock',
+        'graphviz',
         'pysmt>=0.7'
     ]
 )
