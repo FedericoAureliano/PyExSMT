@@ -14,10 +14,9 @@ setup(
     scripts      = ['bin/pyexsmt'],
     packages     = find_packages(),
     package_dir  = {'pyexsmt': 'pyexsmt'},
-    dependency_links=['https://github.com/pysmt/pysmt'],
     install_requires=[
         'mock',
         'graphviz',
-        'pysmt>=0.7'
+        'pysmt>=0.7.1'
     ]
 )
