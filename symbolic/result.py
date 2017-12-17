@@ -2,7 +2,7 @@ import logging
 from graphviz import Source
 from collections import deque
 
-from symbolic import pred_to_SMT, get_concr_value
+from symbolic import pred_to_SMT, get_concr_value, match_SMT_type
 from symbolic.symbolic_types import SymbolicObject
 from symbolic.symbolic_types.symbolic_object import wrap
 
@@ -46,15 +46,17 @@ class Result(object):
                 if child is None:
                     continue
                 crep = child[0] if isinstance(child, list) else child
+                crep = str(crep).replace('"', '')
                 dot += "\"%s%d\" -> \"%s%d\" [ label=\"%d\" ];\n" %(rep, level, crep, level+1, slot % 2)
                 dot += self._to_dot(child, level+1)
             return dot
         elif list_rep is not None:
+            list_rep = str(list_rep).replace('"', '')
             return "\"%s%d\" [ label=\"%s\" ];\n" % (list_rep, level, list_rep)
         else:
             return ""
 
-    def to_summary(self, unknown):
+    def to_summary(self, unknown = Symbol('Unknown', INT)):
         if self.list_rep is None:
             self.list_rep = self._to_list_rep(self.path.root_constraint)
         summary = self._to_summary(self.list_rep, unknown)
@@ -64,7 +66,7 @@ class Result(object):
         if isinstance(list_rep, list) and len(list_rep) == 3:
             return Ite(list_rep[0], self._to_summary(list_rep[1], unknown), self._to_summary(list_rep[2], unknown))
         elif list_rep is not None:
-            return list_rep
+            return match_SMT_type(list_rep, unknown.get_type())
         else:
             return unknown
 

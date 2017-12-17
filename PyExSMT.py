@@ -88,7 +88,7 @@ try:
 
     # print summary
     if summary:
-        summary = result_struct.to_summary(Symbol('unkknown', INT))
+        summary = result_struct.to_summary()
         print("\nSummary:\n%s\n" % summary)
 
     # output DOT graph

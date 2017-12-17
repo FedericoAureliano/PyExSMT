@@ -215,5 +215,9 @@ def wrap(val):
         return Int(val)
     elif isinstance(val, bool):
         return TRUE() if val else FALSE()
+    elif isinstance(val, str):
+        return String(val)
+    elif val is None:
+        return None
     else:
         raise NotImplementedError("Wrap doesn't support this type! %s." %type(val))

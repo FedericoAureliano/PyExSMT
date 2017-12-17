@@ -76,3 +76,9 @@ def get_symbolic_from_expr(expr):
     else:
         logging.error("TYPE NOT FOUND: %s" % expr.get_type())
         sys.exit(-1)
+
+def match_SMT_type(node, to_type):
+    if node.get_type() == to_type:
+        return node
+    else:
+        return Symbol(str(node), to_type)
