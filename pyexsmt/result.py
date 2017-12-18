@@ -13,6 +13,7 @@ class Result(object):
         self.generated_inputs = []
         self.execution_return_values = []
         self.list_rep = None
+        self.curr_id = 0
 
     def record_inputs(self, inputs):
         inputs = [(k, get_concr_value(inputs[k])) for k in inputs]
@@ -35,10 +36,12 @@ class Result(object):
         s = Source(dot, filename=filename+".dot", format="png")
         s.view()
 
-    def _to_dot(self, list_rep, level=0):
+    def _to_dot(self, list_rep):
+        curr = self.curr_id
         if isinstance(list_rep, list) and len(list_rep) == 3:
             rep = list_rep[0]
-            dot = "\"%s%d\" [ label=\"%s\" ];\n" % (rep, level, rep)
+            dot = "\"%s%d\" [ label=\"%s\" ];\n" % (rep, curr, rep)
+            self.curr_id += 1
 
             for slot in range(1, 3):
                 child = list_rep[slot]
@@ -47,12 +50,14 @@ class Result(object):
                 crep = child[0] if isinstance(child, list) else child
                 crep = str(crep).replace('"', '\\\"')
                 dot += "\"%s%d\" -> \"%s%d\" [ label=\"%d\" ];\n" \
-                        %(rep, level, crep, level+1, slot%2)
-                dot += self._to_dot(child, level+1)
+                        %(rep, curr, crep, self.curr_id, slot%2)
+                dot += self._to_dot(child)
             return dot
         elif list_rep is not None:
             list_rep = str(list_rep).replace('"', '\\\"')
-            return "\"%s%d\" [ label=\"%s\" ];\n" % (list_rep, level, list_rep)
+            temp = "\"%s%d\" [ label=\"%s\" ];\n" % (list_rep, curr, list_rep)
+            self.curr_id += 1
+            return temp
         else:
             return ""
 
