@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-
 from setuptools import setup, find_packages
 
 setup(
@@ -17,6 +15,6 @@ setup(
     install_requires=[
         'mock',
         'graphviz',
-        'pysmt>=0.7.1'
+        'pysmt>=0.7' #WE ARE ACTUALY USING 0.7.1dev!!
     ]
 )
