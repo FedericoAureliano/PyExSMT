@@ -15,6 +15,9 @@ cd ..
 git clone https://github.com/FedericoAureliano/PyExSMT.git
 cd PyExSMT
 python3 setup.py install # May need sudo
+
+# To display graphs
+sudo apt install graphviz
 ```
 
 ## Usage
