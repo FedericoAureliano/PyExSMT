@@ -6,13 +6,13 @@ This code is a substantial rewrite of the PyExZ3 (https://github.com/thomasjball
 ## Installing
 ```bash
 # Install PySMT >= 0.7.1dev
-git clone git@github.com:pysmt/pysmt.git
+git clone https://github.com/pysmt/pysmt.git
 cd pysmt
 python3 setup.py install # May need sudo
 cd ..
 
 # Install PyExSMT
-git clone git@github.com:FedericoAureliano/PyExSMT.git
+git clone https://github.com/FedericoAureliano/PyExSMT.git
 cd PyExSMT
 python3 setup.py install # May need sudo
 ```
