@@ -37,7 +37,8 @@ This code is a substantial rewrite of the PyExZ3 (https://github.com/thomasjball
 
 ## Examples
 
-```
+#### /examples/demo.py
+```python
 def lib(x,y):
     if x > y:
         return x
