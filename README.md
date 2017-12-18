@@ -4,74 +4,85 @@
 This code is a substantial rewrite of the PyExZ3 (https://github.com/thomasjball/PyExZ3) symbolic execution engine for Python, now using the PySMT project (https://github.com/pysmt/pysmt).
 
 ## Installing
-    git clone git@github.com:FedericoAureliano/PyExSMT.git
-    cd PyExSMT
-    git clone git@github.com:pysmt/pysmt.git
-    cd pysmt
-    python3 setup.py install
-    cd ..
-    python3 setup.py install
+```bash
+# Install PySMT >= 0.7.1dev
+git clone git@github.com:pysmt/pysmt.git
+cd pysmt
+python3 setup.py install # May need sudo
+cd ..
 
-## Usage
-    usage: pyexsmt [-h] [--log LOGLEVEL] [--uninterp name return_type arg_types]
-               [--entry ENTRY] [--graph] [--summary] [--max-iters MAX_ITERS]
-               [--max-depth MAX_DEPTH] [--solver SOLVER]
-               file
-
-    positional arguments:
-    file                  Select Python file
-
-    optional arguments:
-    -h, --help            show this help message and exit
-    --log LOGLEVEL        Set log level
-    --uninterp name return_type arg_types 
-                          <func_name> <return_type> <arg_types>
-    --entry ENTRY         Specify entry point
-    --graph               Generate a DOT graph of execution tree
-    --summary             Generate a functional summary
-    --max-iters MAX_ITERS
-                          Limit number of iterations
-    --max-depth MAX_DEPTH
-                          Limit the depth of paths
-    --solver SOLVER       Choose SMT solver
-
-## Examples
-
-#### /examples/demo.py
-```python
-def lib(x,y):
-    if x > y:
-        return x
-    else:
-        return y
-
-def demo(in1, in2, in3):
-    if in1 == 0:
-        if in2 == 5:
-            return lib(in1, in2)
-        else:
-            if in3 <= 3:
-                return 3
-            else:
-                return lib(in1, in2)
-    else:
-        if in1 == 1:
-            if in2 == 7:
-                return 5
-            else:
-                return 6
-        else:
-            return lib(in1, in2)
-    return 0
+# Install PyExSMT
+git clone git@github.com:FedericoAureliano/PyExSMT.git
+cd PyExSMT
+python3 setup.py install # May need sudo
 ```
 
-    pyexsmt --graph examples/demo.py
+## Usage
+```
+usage: pyexsmt [-h] [--log LOGLEVEL] [--uninterp name return_type arg_types]
+        [--entry ENTRY] [--graph] [--summary] [--max-iters MAX_ITERS]
+        [--max-depth MAX_DEPTH] [--solver SOLVER]
+        file
+```
+
+## Example
+
+### [demo.py](/examples/demo.py)
+
+```python
+def lib(x,y):
+    if x == 0:
+        return 0
+    else:
+        return x + y
+    return 10
+
+def demo(in1, in2, in3):
+    if lib(in1, in2) > 0:
+        return 0
+    else:
+        return lib(in2, in3)
+```
+
+### Graph Generation
+
+```bash
+pyexsmt --graph demo.py
+```
+
 ![demo graph](/images/demo.png)
 
-    pyexsmt --graph examples/demo.py --uninterp lib int [int,int]
+```bash
+pyexsmt --graph --uninterp lib int [int,int] demo.py
+```
+
 ![demo graph](/images/demolib.png)
 
-    pyexsmt --summary examples/demo.py --uninterp lib int [int,int]
+```bash
+pyexsmt --graph --entry lib demo.py
+```
 
-    Summary:
-    ((in1 = 0) ? ((in2 = 5) ? lib(in1, in2) : ((in3 <= 3) ? 3 : lib(in1, in2))) : ((in1 = 1) ? ((in2 = 7) ? 5 : 6) : lib(in1, in2)))
+![demo graph](/images/lib.png)
+
+### Summary Generation
+
+```
+pyexsmt --summary demo.py
+
+Summary:
+((in1 = 0) ? ((in2 = 0) ? 0 : (in2 + in3)) : ((0 < (in1 + in2)) ? 0 : ((in2 = 0) ? 0 : (in2 + in3))))
+```
+
+```
+pyexsmt --summary --uninterp lib int [int,int] demo.py
+
+Summary:
+((0 < lib(in1, in2)) ? 0 : lib(in2, in3))
+```
+
+```
+pyexsmt --summary --entry lib demo.py
+
+Summary:
+((x = 0) ? 0 : (x + y))
+```
