@@ -58,4 +58,4 @@ class SymbolicInteger(SymbolicObject):
         return self.__mul__(other)
 
     def __rsub__(self, other):
-        return (Int(0)-self).__add__(other)
+        return (-self).__add__(other)
