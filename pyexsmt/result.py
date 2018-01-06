@@ -21,6 +21,7 @@ class Result(object):
         logging.debug("RECORDING INPUTS: %s", inputs)
 
     def record_output(self, ret):
+        logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
         self.path.current_constraint.effect = wrap(ret)
         if isinstance(ret, SymbolicObject):
             ret = ret.get_concr_value()
@@ -86,12 +87,9 @@ class Result(object):
                 right = node.children[1] if not node.children[1].predicate.result else node.children[0]
                 return [pred_to_smt(left.predicate), self._to_list_rep(left), self._to_list_rep(right)]
             else:
-                print(children)
                 raise ValueError("Two children of a constraint should have the same predicate!")
         elif len(node.children) == 1:
-            left = node.children[0] if node.children[0].predicate.result else None
-            right = node.children[0] if not node.children[0].predicate.result else None
-            return [pred_to_smt(left.predicate if left else right.predicate), self._to_list_rep(left), self._to_list_rep(right)]
+            return [pred_to_smt(node.children[0].predicate), self._to_list_rep(node.children[0]), None]
         elif len(children) == 0:
             return node.effect
 

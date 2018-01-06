@@ -35,7 +35,7 @@ def main():
     parser.add_argument("--max-depth", dest="max_depth", type=int, \
                                     help="Limit the depth of paths", default=0)
     parser.add_argument("--solver", dest="solver", action="store", \
-                                    help="Choose SMT solver", default="z3")
+                                    help="Choose SMT solver", default="msat")
     parser.add_argument(dest="file", action="store", help="Select Python file")
 
     options = parser.parse_args()
