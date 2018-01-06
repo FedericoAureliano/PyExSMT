@@ -34,12 +34,6 @@ class SymbolicInteger(SymbolicObject):
             raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr * other)
 
-    def __div__(self, other):
-        other = wrap(other)
-        if self.expr.get_type() != other.get_type():
-            raise TypeError("CANNOT '/' %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicInteger(self.expr / other)
-
     ## UNARY OPERATORS
     def __neg__ (self):
         return SymbolicInteger(Int(0) - self.expr)
