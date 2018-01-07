@@ -3,7 +3,7 @@ from graphviz import Source
 
 from pyexsmt import pred_to_smt, get_concr_value, match_smt_type
 from pyexsmt.symbolic_types import SymbolicObject
-from pyexsmt.symbolic_types.symbolic_object import wrap
+from pyexsmt.symbolic_types.symbolic_object import to_pysmt, is_instance_userdefined_and_newclass
 
 from pysmt.shortcuts import *
 
@@ -22,7 +22,7 @@ class Result(object):
 
     def record_output(self, ret):
         logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
-        self.path.current_constraint.effect = wrap(ret)
+        self.path.current_constraint.effect = ret
         if isinstance(ret, SymbolicObject):
             ret = ret.get_concr_value()
         self.execution_return_values.append(ret)
@@ -48,13 +48,14 @@ class Result(object):
                 child = list_rep[slot]
                 if child is None:
                     continue
-                crep = child[0] if isinstance(child, list) else child
+                crep = child[0] if isinstance(child, list) else to_pysmt(child)
                 crep = str(crep).replace('"', '\\\"')
                 dot += "\"%s%d\" -> \"%s%d\" [ label=\"%d\" ];\n" \
                         %(rep, curr, crep, self.curr_id, slot%2)
                 dot += self._to_dot(child)
             return dot
         elif list_rep is not None:
+            list_rep = to_pysmt(list_rep)
             list_rep = str(list_rep).replace('"', '\\\"')
             temp = "\"%s%d\" [ label=\"%s\" ];\n" % (list_rep, curr, list_rep)
             self.curr_id += 1
@@ -73,7 +74,10 @@ class Result(object):
             return Ite(list_rep[0], self._to_summary(list_rep[1], unknown),\
                         self._to_summary(list_rep[2], unknown))
         elif list_rep is not None:
-            return match_smt_type(list_rep, unknown.get_type())
+            if not is_instance_userdefined_and_newclass(list_rep):
+                return match_smt_type(to_pysmt(list_rep), unknown.get_type())
+            else:
+                raise TypeError("Summaries don't support object returns")
         else:
             return unknown
 

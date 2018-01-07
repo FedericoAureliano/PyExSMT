@@ -4,7 +4,7 @@ import sys
 
 from pyexsmt.symbolic_types import SymbolicObject
 from pyexsmt.symbolic_types.symbolic_int import SymbolicInteger
-from pyexsmt.symbolic_types.symbolic_object import wrap
+from pyexsmt.symbolic_types.symbolic_object import to_pysmt
 
 from pysmt.shortcuts import *
 
@@ -75,7 +75,7 @@ def uninterp_func_pair(definition, module):
             IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
             AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
             '''
-            args = [wrap(a) for a in args]
+            args = [to_pysmt(a) for a in args]
             try:
                 ret = f(*args)
                 return get_symbolic_from_expr(ret)

@@ -1,6 +1,6 @@
 # Copyright: copyright.txt
 
-from pyexsmt.symbolic_types.symbolic_object import SymbolicObject, wrap
+from pyexsmt.symbolic_types.symbolic_object import SymbolicObject, to_pysmt
 
 from pysmt.shortcuts import *
 
@@ -17,19 +17,19 @@ class SymbolicInteger(SymbolicObject):
 
     ## ARITHMETIC OPERATORS
     def __add__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '+' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr + other)
 
     def __sub__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '-' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr - other)
 
     def __mul__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr * other)

@@ -1,6 +1,7 @@
 # Copyright: see copyright.txt
 
 import logging
+import inspect
 
 from pysmt.shortcuts import *
 
@@ -67,50 +68,50 @@ class SymbolicObject(object):
     ## COMPARISON OPERATORS
     def __eq__(self, other):
         #TODO: what if self is not symbolic and other is?
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(Equals(self.expr, other))
 
     def __ne__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(NotEquals(self.expr, other))
 
     def __lt__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(LT(self.expr, other))
 
     def __le__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(LE(self.expr, other))
 
     def __gt__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(GT(self.expr, other))
 
     def __ge__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
         return SymbolicObject(GE(self.expr, other))
 
     ## LOGICAL OPERATORS
     def __and__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT AND %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicObject(And(self.expr, other))
 
     def __or__(self, other):
-        other = wrap(other)
+        other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT OR %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicObject(Or(self.expr, other))
@@ -205,7 +206,7 @@ class SymbolicObject(object):
     def __ror__(self, other):
         return self.__or__(other)
 
-def wrap(val):
+def to_pysmt(val):
     '''
     Take a primitive or a Symbolic object and
     return a pysmt expression
@@ -220,5 +221,20 @@ def wrap(val):
         return String(val)
     elif val is None:
         return None
+    elif is_instance_userdefined_and_newclass(val):
+        # user defined class. Decompose it
+        attributes = inspect.getmembers(val, lambda a: not(inspect.isroutine(a)))
+        attributes = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
+        return [to_pysmt(a[1]) for a in attributes]
     else:
         raise NotImplementedError("Wrap doesn't support this type! %s." %type(val))
+
+
+def is_instance_userdefined_and_newclass(inst):
+    '''
+    Hack to find out if the object in question was defined by the user
+    '''
+    cls = inst.__class__
+    if hasattr(cls, '__class__'):
+        return ('__dict__' in dir(cls) or hasattr(cls, '__slots__'))
+    return False
