@@ -222,6 +222,7 @@ def to_pysmt(val):
     elif val is None:
         return None
     elif is_instance_userdefined_and_newclass(val):
+        # TODO should this be handled somewhere else?
         # user defined class. Decompose it
         attributes = inspect.getmembers(val, lambda a: not(inspect.isroutine(a)))
         attributes = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]

@@ -1,26 +1,29 @@
 # PyExSMT
-*Python Exploration with PySMT*
+
+Python Exploration with PySMT
 
 This code is a substantial rewrite of the PyExZ3 (https://github.com/thomasjball/PyExZ3) symbolic execution engine for Python, now using the PySMT project (https://github.com/pysmt/pysmt).
 
 ## Installing
+
 ```bash
 # Install PySMT >= 0.7.1dev
 git clone https://github.com/pysmt/pysmt.git
 cd pysmt
-python3 setup.py install # May need sudo
+sudo python3 setup.py install
 cd ..
 
 # Install PyExSMT
 git clone https://github.com/FedericoAureliano/PyExSMT.git
 cd PyExSMT
-python3 setup.py install # May need sudo
+sudo python3 setup.py install
 
 # To display graphs
 sudo apt install graphviz
 ```
 
 ## Usage
+
 ```
 usage: pyexsmt [-h] [--log LOGLEVEL] [--uninterp name return_type arg_types]
         [--entry ENTRY] [--graph] [--summary] [--max-iters MAX_ITERS]

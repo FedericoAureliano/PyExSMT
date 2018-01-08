@@ -74,9 +74,10 @@ class Result(object):
             return Ite(list_rep[0], self._to_summary(list_rep[1], unknown),\
                         self._to_summary(list_rep[2], unknown))
         elif list_rep is not None:
-            if not is_instance_userdefined_and_newclass(list_rep):
+            if isinstance(list_rep, SymbolicObject) or not is_instance_userdefined_and_newclass(list_rep):
                 return match_smt_type(to_pysmt(list_rep), unknown.get_type())
             else:
+                print(list_rep, type(list_rep))
                 raise TypeError("Summaries don't support object returns")
         else:
             return unknown
