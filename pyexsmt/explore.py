@@ -12,7 +12,7 @@ from pysmt.shortcuts import *
 
 
 class ExplorationEngine:
-    def __init__(self, funcinv, solver="msat"):
+    def __init__(self, funcinv, solver="z3"):
         self.invocation = funcinv
         # the input to the function
         self.symbolic_inputs = {}  # string -> SymbolicObject

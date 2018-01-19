@@ -34,6 +34,19 @@ class SymbolicInteger(SymbolicObject):
             raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr * other)
 
+    def __mod__(self, other):
+        other = to_pysmt(other)
+        if self.expr.get_type() != other.get_type() or self.expr.get_type() != INT:
+            raise TypeError("CANNOT 'mod' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicInteger(self.expr % other)
+
+
+    def __floordiv__(self, other):
+        other = to_pysmt(other)
+        if self.expr.get_type() != other.get_type() or self.expr.get_type() != INT:
+            raise TypeError("CANNOT '//' %s and %s" %(self.expr.get_type(), other.get_type()))
+        return SymbolicInteger(self.expr // other)
+
     ## UNARY OPERATORS
     def __neg__ (self):
         return SymbolicInteger(Int(0) - self.expr)
