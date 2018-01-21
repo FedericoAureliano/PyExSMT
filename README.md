@@ -7,8 +7,8 @@ This code is a substantial rewrite of the PyExZ3 (https://github.com/thomasjball
 ## Installing
 
 ```bash
-# Install PySMT >= 0.7.1dev
-git clone https://github.com/pysmt/pysmt.git
+# Install this fork of PySMT
+git clone https://github.com/FedericoAureliano/pysmt.git
 cd pysmt
 sudo python3 setup.py install
 cd ..
