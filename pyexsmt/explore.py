@@ -92,7 +92,11 @@ class ExplorationEngine:
         logging.info("USING INPUTS: %s", self.result.generated_inputs[-1])
 
         self.path.reset(expected_path)
-        ret = self.invocation.call_function(self.symbolic_inputs, funcs)
+
+        try:
+            ret = self.invocation.call_function(self.symbolic_inputs, funcs)
+        except Exception:
+            ret = None
 
         logging.debug("CURRENT CONSTARINT: %s", repr(self.path.current_constraint))
         logging.info("RETURN: %s", ret)
