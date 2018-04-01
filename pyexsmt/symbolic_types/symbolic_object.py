@@ -9,16 +9,27 @@ from pysmt.shortcuts import *
 # it also tracks the corresponding concrete value for the expression (aka concolic execution)
 
 class SymbolicObject(object):
-    def __init__(self, expr, name="se", ty=INT):
+    def __init__(self, expr, name="se", ty=INT, shadow_expr = None):
         if expr is None:
             self.expr = Symbol(name, ty)
         else:
             self.expr = expr
 
+        #if Shadow is not detected, set shadow expression same as symbolic expression
+        if shadow_expr is None:
+            self.shadow_expr = self.expr
+        else:
+            self.shadow_expr = shadow_expr
+
+
     # This is set up by the concolic engine to link __bool__ to PathConstraint
     SI = None
     # This is set up by the concolic engine to link the solver to the variables
     SOLVER = None
+
+    SHADOW_LEADING= False
+
+
 
     # this is a critical interception point: the __bool__
     # method is called whenever a predicate is evaluated in
@@ -33,25 +44,70 @@ class SymbolicObject(object):
         else:
             raise NotImplementedError("%s not supported in conditional yet" % t)
 
+        shadow_t = self.shadow_expr.get_type()
+        if shadow_t == BOOL:
+            shadow_obj = SymbolicObject(self.shadow_expr, ty=BOOL)
+        elif t == INT:
+            shadow_obj = SymbolicObject(NotEquals(self.shadow_expr, Int(0)))
+        else:
+            raise NotImplementedError("%s not supported in conditional yet" % t)
+
         ret = obj.get_concr_value()
+        ret_shadow =shadow_obj.get_concr_value()
 
-        if SymbolicObject.SI != None:
-            SymbolicObject.SI.which_branch(ret, obj)
+        #if we executing shadow program, move shadow value to the foreground
+        if SymbolicObject.SHADOW_LEADING:
+            if SymbolicObject.SI != None:
+                SymbolicObject.SI.which_branch(ret_shadow, shadow_obj, ret, obj)
+            return ret_shadow
+        else:
+            if SymbolicObject.SI != None:
+                SymbolicObject.SI.which_branch(ret, obj, ret_shadow, shadow_obj)
 
-        return ret
+            return ret
 
-    def get_concr_value(self):
+    def get_concr_value(self, shadow=False):
         if SymbolicObject.SOLVER is None:
             raise ValueError("MUST SPECIFY SOLVER")
         if not SymbolicObject.SOLVER.last_result:
             raise ValueError("SOLVER MUST HAVE A MODEL")
-        val = SymbolicObject.SOLVER.get_py_value(self.expr)
+        if (shadow):
+            val = SymbolicObject.SOLVER.get_py_value(self.shadow_expr)
+        else:
+            val = SymbolicObject.SOLVER.get_py_value(self.expr)
         return val
 
-    def symbolic_eq(self, other):
+    def symbloic(self, symbolicExpr, name="se", ty=INT):
+        if symbolicExpr is None:
+            self.expr = Symbol(name, ty)
+        else:
+            #if the expression is a symbolic object, extract its shadow expression
+            expr = to_pysmt(symbolicExpr, shadow=False)
+            self.expr = expr
+
+        return self;
+
+    def shadow(self, shadowExpr, name="se", ty=INT):
+        if shadowExpr is None:
+            self.shadow_expr = Symbol(name, ty)
+        else:
+            #if the expression is a symbolic object, extract its shadow expression
+            shadowExpr = to_pysmt(shadowExpr, shadow=True)
+            self.shadow_expr = shadowExpr
+
+        return self;
+
+    def reset_shadow(self):
+        self.shadow_expr = self.expr
+
+    def symbolic_eq(self, other, shadow=False):
         if not isinstance(other, SymbolicObject):
             ret = False
-        ret = repr(self.expr) == repr(other.expr)
+
+        if shadow:
+            ret = (repr(self.expr) == repr(other.expr)) and (repr(self.shadow_expr) == repr(other.shadow_expr))
+        else:
+            ret = repr(self.expr) == repr(other.expr)
         logging.debug("Checking equality of %s and %s: result is %s", repr(self), repr(other), ret)
         return ret
 
@@ -68,53 +124,61 @@ class SymbolicObject(object):
     ## COMPARISON OPERATORS
     def __eq__(self, other):
         #TODO: what if self is not symbolic and other is?
+        other_shadow = to_pysmt(other,shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(Equals(self.expr, other))
+        return SymbolicObject(Equals(self.expr, other), shadow_expr = Equals(self.shadow_expr, other_shadow))
 
     def __ne__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(NotEquals(self.expr, other))
+        return SymbolicObject(NotEquals(self.expr, other), shadow_expr = NotEquals(self.shadow_expr, other_shadow))
 
     def __lt__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(LT(self.expr, other))
+        return SymbolicObject(LT(self.expr, other), shadow_expr= LT(self.shadow_expr, other_shadow))
 
     def __le__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(LE(self.expr, other))
+        return SymbolicObject(LE(self.expr, other), shadow_expr=LE(self.expr, other_shadow))
 
     def __gt__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(GT(self.expr, other))
+        return SymbolicObject(GT(self.expr, other), shadow_expr=GT(self.expr, other_shadow))
 
     def __ge__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(GE(self.expr, other))
+        return SymbolicObject(GE(self.expr, other), shadow_expr=GE(self.expr, other_shadow))
 
     ## LOGICAL OPERATORS
     def __and__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT AND %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(And(self.expr, other))
+        return SymbolicObject(And(self.expr, other), shadow_expr=And(self.expr, other_shadow) )
 
     def __or__(self, other):
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT OR %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(Or(self.expr, other))
+        return SymbolicObject(Or(self.expr, other), shadow_expr=Or(self.expr, other_shadow))
 
     ## UNARY OPERATORS
     def __neg__(self):
@@ -206,13 +270,16 @@ class SymbolicObject(object):
     def __ror__(self, other):
         return self.__or__(other)
 
-def to_pysmt(val):
+def to_pysmt(val, shadow= False):
     '''
     Take a primitive or a Symbolic object and
     return a pysmt expression
     '''
     if isinstance(val, SymbolicObject):
-        return val.expr
+        if (shadow):
+            return val.shadow_expr
+        else:
+            return val.expr
     elif isinstance(val, int):
         return Int(val)
     elif isinstance(val, bool):
@@ -226,7 +293,7 @@ def to_pysmt(val):
         # user defined class. Decompose it
         attributes = inspect.getmembers(val, lambda a: not(inspect.isroutine(a)))
         attributes = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
-        return [to_pysmt(a[1]) for a in attributes]
+        return [to_pysmt(a[1], shadow=shadow) for a in attributes]
     else:
         raise NotImplementedError("Wrap doesn't support this type! %s." %type(val))
 

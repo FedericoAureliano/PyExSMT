@@ -17,15 +17,24 @@ class Result(object):
 
     def record_inputs(self, inputs):
         inputs = [(k, get_concr_value(inputs[k])) for k in inputs]
+        if inputs in self.generated_inputs:
+            return False
         self.generated_inputs.append(inputs)
         logging.debug("RECORDING INPUTS: %s", inputs)
+        return True;
 
-    def record_output(self, ret):
+    def record_output(self, ret, shadow=False, compare_symbolic_shadow_result=False):
         logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
         self.path.current_constraint.effect = ret
         if isinstance(ret, SymbolicObject):
+            ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
+            if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
+                print ("Find a output mismatch: %s vs %s", ret, ret_shadow )
+            if (shadow):
+                ret =ret_shadow
         self.execution_return_values.append(ret)
+        return ret
 
     def to_dot(self, filename):
         header = "digraph {\n"

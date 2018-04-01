@@ -1,4 +1,7 @@
 # Copyright - see copyright.txt
+from pyexsmt import pred_to_smt
+from pysmt.shortcuts import *
+from pyexsmt.symbolic_types.symbolic_object import SymbolicObject
 
 class Predicate:
     """Predicate is one specific ``if'' encountered during the program execution.
@@ -27,3 +30,13 @@ class Predicate:
         """Negates the current predicate"""
         assert self.result is not None
         self.result = not self.result
+
+    def AND(self, other):
+        if isinstance(other, Predicate):
+            if (self == other):
+                return Predicate(self.symtype, self.result)
+            symtype = SymbolicObject(And(pred_to_smt(self), pred_to_smt(other)))
+        else:
+            symtype = self.symtype
+            result = self.result
+        return Predicate(symtype, True)

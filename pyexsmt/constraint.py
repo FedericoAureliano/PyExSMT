@@ -15,6 +15,7 @@ class Constraint:
         self.children = []
         self.id = self.__class__.cnt
         self.__class__.cnt += 1
+        self.siblings = None
 
     def __eq__(self, other):
         """Two Constraints are equal iff they have the same chain of predicates"""
@@ -67,4 +68,15 @@ class Constraint:
         c = Constraint(self, predicate)
         self.children.append(c)
         return c
+
+    def add_siblings (self, predicate, priority = False):
+        if (self.siblings is None):
+            self.siblings = []
+
+        if (priority):
+            self.siblings.insert(0, predicate)
+        else:
+            self.siblings.append(predicate)
+        return predicate
+
 

@@ -26,6 +26,8 @@ def pred_to_smt(pred):
     logging.debug("PREDICATE: %s", ret)
     return ret
 
+
+
 def get_concr_value(variable):
     '''
     variable : (U SymbolicObject PythonPrimitive)

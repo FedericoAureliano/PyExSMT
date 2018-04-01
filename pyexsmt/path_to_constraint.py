@@ -17,8 +17,10 @@ class PathToConstraint:
         self.expected_path = None
         self.max_depth = 0
         self.mod = None
+        self.diverge = False
 
     def reset(self,expected):
+        self.diverge = False
         self.current_constraint = self.root_constraint
         if expected is None:
             self.expected_path = None
@@ -29,7 +31,7 @@ class PathToConstraint:
                 self.expected_path.append(tmp.predicate)
                 tmp = tmp.parent
 
-    def which_branch(self, branch, symbolic_type):
+    def which_branch(self, branch, symbolic_type, shadow_branch, shadow_type, shadowLeadding = False):
         """ This function acts as instrumentation.
         Branch can be either True or False."""
 
@@ -42,9 +44,103 @@ class PathToConstraint:
         p.negate()
         cneg = self.current_constraint.find_child(p)
         p.negate()
-        c = self.current_constraint.find_child(p)
+        cpos = self.current_constraint.find_child(p)
+        c = cpos
 
-        if c is None:
+        p_shadow = Predicate(shadow_type, shadow_branch)
+        p_shadow.negate()
+        cneg_shadow = self.current_constraint.find_child(p_shadow)
+        p_shadow.negate()
+        c_shadow = self.current_constraint.find_child(p_shadow)
+
+        #two bool to record the current state of p and p_shadow
+        p_bool = branch;
+        p_shadow_bool = shadow_branch;
+
+        constraint_find = False;
+
+        #continue exploration if path does not diverage
+        diverage = p_bool != p_shadow_bool
+
+
+        #if program has no diverging paths, perform 4-way forking
+        #if program was executed on the shadow version, do not perform 4 way forking
+        if (not self.diverge and not shadowLeadding):
+            #perform 4 way forking
+            #follow the concrete input and create path constraint
+            if cpos is None and c_shadow is None and not constraint_find:
+                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+                if (self.mod is not None and not is_sat(
+                        And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                    logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
+                else:
+                    pMerged = p.AND(p_shadow)
+                    if (self.current_constraint.find_child(pMerged) is None):
+                        c = self.current_constraint.add_child(pMerged)
+                        logging.debug("New constraint: %s", c)
+                        self.add(c)
+                        constraint_find = True
+                        self.diverge = diverage or self.diverge
+
+            #Then we try to find all feasible diverging path from the 4-way forking
+
+            #case 2, filp symbolic predicate but keep shadow the same
+            if cneg is None and c_shadow is None and constraint_find:
+                if (p_bool == branch):
+                    p.negate()
+                    p_bool = not branch
+                if (p_shadow_bool != shadow_branch):
+                    p_shadow.negate()
+                    p_shadow_bool = shadow_branch
+                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+                if (self.mod is not None and not is_sat(
+                        And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
+                        not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                    logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
+                else:
+                    priority = not diverage
+                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
+                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+
+            # case 3, flip  shadow predicate but keep symbolic the same
+            if cpos is None and cneg_shadow is None and constraint_find:
+                if (p_bool != branch):
+                    p.negate()
+                    p_bool =  branch
+                if (p_shadow_bool == shadow_branch):
+                    p_shadow.negate()
+                    p_shadow_bool = not shadow_branch
+                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+                if (self.mod is not None and not is_sat(
+                        And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
+                        not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                    logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
+                else:
+                    priority = not diverage
+                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
+                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+
+            # case 4, flip both shadow and symbolic predicate
+            if cneg is None and cneg_shadow is None and constraint_find:
+                if (p_bool == branch):
+                    p.negate()
+                    p_bool =  not branch
+                if (p_shadow_bool == shadow_branch):
+                    p_shadow.negate()
+                    p_shadow_bool = not shadow_branch
+                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+                if (self.mod is not None and not is_sat(
+                        And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
+                        not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                    logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
+                else:
+                    priority = diverage
+                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
+                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+
+
+        #if program has aleady diverged, then only perform 2 way forking as normal symbolic execution
+        if cpos is None and not constraint_find:
             asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
             if self.mod is not None and not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
                 logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
@@ -54,6 +150,7 @@ class PathToConstraint:
             # we add the new constraint to the queue of the engine for later processing
             logging.debug("New constraint: %s", c)
             self.add(c)
+            constraint_find = True
             
         # check for path mismatch
         # IMPORTANT: note that we don't actually check the predicate is the
