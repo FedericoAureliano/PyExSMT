@@ -51,12 +51,18 @@ class ExplorationEngine:
         self.path.mod = mod
 
         symbolic_ret = self._one_execution(funcs)
+        # if we found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
+        if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
+            self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
+            return None
+
+
         #if execution path diverged, execute on the old version to validate program's return value
         if (self.diverge):
             shadow_ret = self._one_execution(funcs, shadowLeading=True)
             if (symbolic_ret != shadow_ret):
-                logging.info ("find counter example, %s %s", symbolic_ret, shadow_ret)
-                #return self.result
+                self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
+                return None
 
         
         iterations = 1
@@ -87,11 +93,16 @@ class ExplorationEngine:
                 self.num_processed_constraints += 1
                 continue
 
+            #if we found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
+            if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
+                self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
+                return None
+
             if self.diverge:
                 shadow_ret = self._one_execution(funcs, shadowLeading=True)
                 if (symbolic_ret != shadow_ret):
-                    logging.info("find counter example, %s %s", symbolic_ret, shadow_ret)
-                    #return self.result
+                    self.print_counter_example(self.symbolic_inputs,symbolic_ret,shadow_ret)
+                    return None
 
             iterations += 1			
             self.num_processed_constraints += 1
@@ -102,7 +113,17 @@ class ExplorationEngine:
 
         return self.result
 
-    # private
+    def print_counter_example (self, symbolic_inputs, return_new, return_shadow):
+        input_string = ""
+        sep = ""
+        for key,value in symbolic_inputs.items():
+            input_string+=sep
+            sep = " , "
+            input_string+=str(key)
+            input_string+=("=")
+            input_string+=str(value)
+        print("Find a counter example with input: %s" % input_string)
+        print("New Version returns %s, Old Version returns %s" % (return_new, return_shadow))
 
     def _is_exploration_complete(self):
         num_constr = len(self.constraints_to_solve)
@@ -145,7 +166,7 @@ class ExplorationEngine:
         logging.info("RETURN: %s", ret)
 
         self.diverge = self.path.diverge
-        return self.result.record_output(ret, shadowLeading, compare_symbolic_shadow_result= self.diverge)
+        return self.result.record_output(ret, shadowLeading, compare_symbolic_shadow_result= (not self.diverge))
 
 
 

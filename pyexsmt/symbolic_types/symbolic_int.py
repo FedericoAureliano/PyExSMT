@@ -8,6 +8,30 @@ class SymbolicInteger(SymbolicObject):
     def __init__(self, expr, name = "se", shadow_expr = None):
         SymbolicObject.__init__(self, expr, name, INT, shadow_expr)
 
+
+    def symbloic(self, symbolicExpr, name="se", ty=INT):
+        if symbolicExpr is None:
+            expr = Symbol(name, ty)
+        else:
+            #if the expression is a symbolic object, extract its shadow expression
+            expr = to_pysmt(symbolicExpr, shadow=False)
+
+        return SymbolicInteger(expr=expr, shadow_expr=self.shadow_expr);
+
+    def shadow(self, shadowExpr, name="se", ty=INT):
+        if shadowExpr is None:
+            shadow_expr = Symbol(name, ty)
+        else:
+            #if the expression is a symbolic object, extract its shadow expression
+            shadow_expr = to_pysmt(shadowExpr, shadow=True)
+
+        return SymbolicInteger(expr=self.expr, shadow_expr=shadow_expr);
+
+    #method convert self to a shadow symbolic object, make shadow the foreground value
+    def to_shadow(self):
+        return SymbolicInteger(expr=self.shadow_expr)
+
+
     ## LOGICAL OPERATORS
     def __and__(self, other):
         raise NotImplementedError("and is not implemented for %s!" % self.expr.get_type())

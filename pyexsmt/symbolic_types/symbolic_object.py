@@ -107,9 +107,9 @@ class SymbolicObject(object):
             shadow_expr = Symbol(name, ty)
         else:
             #if the expression is a symbolic object, extract its shadow expression
-            shadowExpr = to_pysmt(shadowExpr, shadow=True)
+            shadow_expr = to_pysmt(shadowExpr, shadow=True)
 
-        return SymbolicObject(expr=self.expr, shadow_expr=shadowExpr);
+        return SymbolicObject(expr=self.expr, shadow_expr=shadow_expr);
 
     #method convert self to a shadow symbolic object, make shadow the foreground value
     def to_shadow(self):

@@ -36,7 +36,7 @@ class Result(object):
             ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
             if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
-                logging.info("Find a output mismatch: %s vs %s", ret, ret_shadow )
+                return [ret, ret_shadow]
 
         #if we are running on shadow (old) version, use the shadow return value
         if (shadow):
