@@ -1,6 +1,7 @@
 # Copyright: copyright.txt
 
 from pyexsmt.symbolic_types.symbolic_object import SymbolicObject, to_pysmt
+from pyexsmt.symbolic_types.symbolic_object import create_shadow as ob_create_shadow
 
 from pysmt.shortcuts import *
 
@@ -95,3 +96,23 @@ class SymbolicInteger(SymbolicObject):
 
     def __rsub__(self, other):
         return (-self).__add__(other)
+
+# method to create a shadow expression for INT type symbolic and shadow Integer
+def create_shadow(symbolic_expression, shadow_expression):
+    if isinstance(symbolic_expression, SymbolicInteger):
+        expr = symbolic_expression.expr
+    elif isinstance(symbolic_expression, int):
+        expr = to_pysmt(symbolic_expression)
+    else:
+        # if the input expression is not int, then use the genereic symbolic object
+        return ob_create_shadow(symbolic_expression, shadow_expression)
+
+    if isinstance(shadow_expression, SymbolicInteger):
+        shadow_expr = shadow_expression.shadow_expr
+    elif isinstance(shadow_expression, int):
+        shadow_expr = to_pysmt(shadow_expression, shadow=True)
+    else:
+        # if the shadow expression is not int, then use the genereic symbolic object
+        return ob_create_shadow(symbolic_expression, shadow_expression)
+
+    return SymbolicInteger(expr=expr, shadow_expr=shadow_expr)

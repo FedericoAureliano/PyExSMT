@@ -32,21 +32,6 @@ class SymbolicObject(object):
     SHADOW_LEADING= False
 
 
-    #method to create a shadow expression, only callable on shadow handler
-    def create_shadow(symbolic_expression, shadow_expression):
-        if isinstance(symbolic_expression, SymbolicObject):
-            expr = symbolic_expression.expr
-        else:
-            expr = symbolic_expression
-
-        if isinstance(shadow_expression, SymbolicObject):
-            shadow_expr = shadow_expression.shadow_expr
-        else:
-            shadow_expr = shadow_expression
-
-        return SymbolicObject(expr=expr, shadow_expr=shadow_expr)
-
-
     # this is a critical interception point: the __bool__
     # method is called whenever a predicate is evaluated in
     # Python execution (if, while, and, or). This allows us
@@ -325,3 +310,18 @@ def is_instance_userdefined_and_newclass(inst):
     if hasattr(cls, '__class__'):
         return ('__dict__' in dir(cls) or hasattr(cls, '__slots__'))
     return False
+
+
+#method to create a shadow expression, only callable on shadow handler
+def create_shadow(symbolic_expression, shadow_expression):
+    if isinstance(symbolic_expression, SymbolicObject):
+        expr = symbolic_expression.expr
+    else:
+        expr = to_pysmt(symbolic_expression)
+
+    if isinstance(shadow_expression, SymbolicObject):
+        shadow_expr = shadow_expression.shadow_expr
+    else:
+        shadow_expr = to_pysmt(shadow_expression, shadow=True)
+
+    return SymbolicObject(expr=expr, shadow_expr=shadow_expr)
