@@ -111,6 +111,10 @@ class SymbolicObject(object):
 
         return SymbolicObject(expr=self.expr, shadow_expr=shadowExpr);
 
+    #method convert self to a shadow symbolic object, make shadow the foreground value
+    def to_shadow(self):
+        return SymbolicObject(expr=self.shadow_expr)
+
     def reset_shadow(self):
         self.expr = self.origin_expr
         self.shadow_expr = self.expr

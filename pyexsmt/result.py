@@ -26,10 +26,13 @@ class Result(object):
     def record_output(self, ret, shadow=False, compare_symbolic_shadow_result=False):
         logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
         #first unify two ret values
+        ret_symbolic = ret
         ret_shadow = ret
+        ret_shadow_symbolic = ret
 
         #if return value is a symbolic object, check its mirror and shadow values
         if isinstance(ret, SymbolicObject):
+            ret_shadow_symbolic = ret.to_shadow()
             ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
             if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
@@ -38,16 +41,17 @@ class Result(object):
         #if we are running on shadow (old) version, use the shadow return value
         if (shadow):
             ret = ret_shadow
+            ret_symbolic = ret_shadow_symbolic
         else:
             #if we are running on the merged version, update mirror and shadow return value for the merged path
             if not self.path.diverge:
                 if self.path.current_shadow_constraint.effect is None:
-                    self.path.current_shadow_constraint.effect = ret_shadow
+                    self.path.current_shadow_constraint.effect = ret_shadow_symbolic
             if self.path.current_mirror_constraint.effect is None:
-                self.path.current_mirror_constraint.effect = ret
+                self.path.current_mirror_constraint.effect = ret_symbolic
 
         #record current constraint's effect
-        self.path.current_constraint.effect = ret
+        self.path.current_constraint.effect = ret_symbolic
         self.execution_return_values.append(ret)
         return ret
 
