@@ -32,6 +32,20 @@ class SymbolicObject(object):
     SHADOW_LEADING= False
 
 
+    #method to create a shadow expression, only callable on shadow handler
+    def create_shadow(symbolic_expression, shadow_expression):
+        if isinstance(symbolic_expression, SymbolicObject):
+            expr = symbolic_expression.expr
+        else:
+            expr = symbolic_expression
+
+        if isinstance(shadow_expression, SymbolicObject):
+            shadow_expr = shadow_expression.shadow_expr
+        else:
+            shadow_expr = shadow_expression
+
+        return SymbolicObject(expr=expr, shadow_expr=shadow_expr)
+
 
     # this is a critical interception point: the __bool__
     # method is called whenever a predicate is evaluated in
@@ -81,23 +95,21 @@ class SymbolicObject(object):
 
     def symbloic(self, symbolicExpr, name="se", ty=INT):
         if symbolicExpr is None:
-            self.expr = Symbol(name, ty)
+            expr = Symbol(name, ty)
         else:
             #if the expression is a symbolic object, extract its shadow expression
             expr = to_pysmt(symbolicExpr, shadow=False)
-            self.expr = expr
 
-        return self;
+        return SymbolicObject(expr=expr, shadow_expr=self.shadow_expr);
 
     def shadow(self, shadowExpr, name="se", ty=INT):
         if shadowExpr is None:
-            self.shadow_expr = Symbol(name, ty)
+            shadow_expr = Symbol(name, ty)
         else:
             #if the expression is a symbolic object, extract its shadow expression
             shadowExpr = to_pysmt(shadowExpr, shadow=True)
-            self.shadow_expr = shadowExpr
 
-        return self;
+        return SymbolicObject(expr=self.expr, shadow_expr=shadowExpr);
 
     def reset_shadow(self):
         self.expr = self.origin_expr
@@ -152,21 +164,21 @@ class SymbolicObject(object):
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(LE(self.expr, other), shadow_expr=LE(self.expr, other_shadow))
+        return SymbolicObject(LE(self.expr, other), shadow_expr=LE(self.shadow_expr, other_shadow))
 
     def __gt__(self, other):
         other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(GT(self.expr, other), shadow_expr=GT(self.expr, other_shadow))
+        return SymbolicObject(GT(self.expr, other), shadow_expr=GT(self.shadow_expr, other_shadow))
 
     def __ge__(self, other):
         other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             return False
-        return SymbolicObject(GE(self.expr, other), shadow_expr=GE(self.expr, other_shadow))
+        return SymbolicObject(GE(self.expr, other), shadow_expr=GE(self.shadow_expr, other_shadow))
 
     ## LOGICAL OPERATORS
     def __and__(self, other):
@@ -174,14 +186,14 @@ class SymbolicObject(object):
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT AND %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(And(self.expr, other), shadow_expr=And(self.expr, other_shadow) )
+        return SymbolicObject(And(self.expr, other), shadow_expr=And(self.shadow_expr, other_shadow) )
 
     def __or__(self, other):
         other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT OR %s and %s" %(self.expr.get_type(), other.get_type()))
-        return SymbolicObject(Or(self.expr, other), shadow_expr=Or(self.expr, other_shadow))
+        return SymbolicObject(Or(self.expr, other), shadow_expr=Or(self.shadow_expr, other_shadow))
 
     ## UNARY OPERATORS
     def __neg__(self):

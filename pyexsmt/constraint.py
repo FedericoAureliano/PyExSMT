@@ -14,6 +14,7 @@ class Constraint:
         self.parent = parent
         self.children = []
         self.shadow_children = []
+        self.mirror_children = []
         self.id = self.__class__.cnt
         self.__class__.cnt += 1
         self.siblings = None
@@ -82,6 +83,22 @@ class Constraint:
         self.four_way = four_way or self.four_way
 
         return c
+
+    def find_mirror_child(self, predicate):
+        children_list = self.mirror_children
+        for c in children_list:
+            if predicate == c.predicate:
+                return c
+        return None
+
+    def add_mirror_child(self, predicate):
+        children_list = self.mirror_children
+        assert (self.find_mirror_child(predicate) is None)
+        c = Constraint(self, predicate)
+        children_list.append(c)
+
+        return c
+
 
     def add_siblings (self, predicate, priority = False):
         if (self.siblings is None):

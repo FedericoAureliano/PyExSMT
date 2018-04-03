@@ -21,6 +21,9 @@ class ExplorationEngine:
         for n in funcinv.get_names():
             self.symbolic_inputs[n] = funcinv.create_arg_value(n)
 
+        #create a SHADOW_HANDLER to control shadow annotation injection
+
+
         self.constraints_to_solve = deque([])
         self.num_processed_constraints = 0
 

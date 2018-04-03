@@ -25,14 +25,29 @@ class Result(object):
 
     def record_output(self, ret, shadow=False, compare_symbolic_shadow_result=False):
         logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
-        self.path.current_constraint.effect = ret
+        #first unify two ret values
+        ret_shadow = ret
+
+        #if return value is a symbolic object, check its mirror and shadow values
         if isinstance(ret, SymbolicObject):
             ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
             if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
                 logging.info("Find a output mismatch: %s vs %s", ret, ret_shadow )
-            if (shadow):
-                ret =ret_shadow
+
+        #if we are running on shadow (old) version, use the shadow return value
+        if (shadow):
+            ret = ret_shadow
+        else:
+            #if we are running on the merged version, update mirror and shadow return value for the merged path
+            if not self.path.diverge:
+                if self.path.current_shadow_constraint.effect is None:
+                    self.path.current_shadow_constraint.effect = ret_shadow
+            if self.path.current_mirror_constraint.effect is None:
+                self.path.current_mirror_constraint.effect = ret
+
+        #record current constraint's effect
+        self.path.current_constraint.effect = ret
         self.execution_return_values.append(ret)
         return ret
 
@@ -72,9 +87,9 @@ class Result(object):
         else:
             return ""
 
-    def to_summary(self, unknown=Symbol('Unknown', INT), shadow = False):
-        if self.list_rep is None or shadow:
-            self.list_rep = self._to_list_rep(self.path.root_constraint, shadow)
+    def to_summary(self, unknown=Symbol('Unknown', INT), shadow = False, mirror = False):
+        if self.list_rep is None or shadow or mirror:
+            self.list_rep = self._to_list_rep(self.path.root_constraint, shadow, mirror)
         summary = self._to_summary(self.list_rep, unknown)
         return summary
 
@@ -91,37 +106,39 @@ class Result(object):
         else:
             return unknown
 
-    def build_smt_from_list (self, nodes, shadow=False):
+    def build_smt_from_list (self, nodes, shadow=False, mirror =False):
         if (len(nodes) == 1):
             return self._to_list_rep(nodes[0], shadow)
         else:
             return_list = []
             left_node = nodes.pop(0)
             return_list.append(pred_to_smt(left_node.predicate))
-            return_list.append(self._to_list_rep(left_node, shadow))
+            return_list.append(self._to_list_rep(left_node, shadow, mirror))
             if (len(nodes) >0):
-                return_list.append(self.build_smt_from_list(nodes, shadow))
+                return_list.append(self.build_smt_from_list(nodes, shadow, mirror))
 
         return return_list
 
-    def _to_list_rep(self, node, shadow=False):
+    def _to_list_rep(self, node, shadow=False, mirror =False):
         if node is None:
             return None
         if shadow:
             children = node.shadow_children
+        elif mirror:
+            children = node.mirror_children
         else:
             children = node.children
-        if ((not shadow) and node.four_way and len(children) != 0):
-            return self.build_smt_from_list(children, shadow)
+        if ((not shadow) and (not mirror) and node.four_way and len(children) != 0):
+            return self.build_smt_from_list(children, shadow, mirror)
         if len(children) == 2:
             if children[0].predicate.symtype.symbolic_eq(children[1].predicate.symtype):
                 left = children[0] if children[0].predicate.result else children[1]
                 right = children[1] if not children[1].predicate.result else children[0]
-                return [pred_to_smt(left.predicate), self._to_list_rep(left, shadow), self._to_list_rep(right, shadow)]
+                return [pred_to_smt(left.predicate), self._to_list_rep(left, shadow, mirror), self._to_list_rep(right, shadow, mirror)]
             else:
                 raise ValueError("Two children of a constraint should have the same predicate!")
         elif len(children) == 1:
-            return [pred_to_smt(children[0].predicate), self._to_list_rep(children[0], shadow), None]
+            return [pred_to_smt(children[0].predicate), self._to_list_rep(children[0], shadow, mirror), None]
         elif len(children) == 0:
             return node.effect
 

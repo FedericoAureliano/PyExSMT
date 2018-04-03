@@ -17,28 +17,28 @@ class SymbolicInteger(SymbolicObject):
 
     ## ARITHMETIC OPERATORS
     def __add__(self, other):
-        other_shadow = to_pysmt(other)
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '+' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr + other, shadow_expr=(self.shadow_expr + other_shadow))
 
     def __sub__(self, other):
-        other_shadow = to_pysmt(other)
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '-' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr - other, shadow_expr=(self.shadow_expr - other_shadow))
 
     def __mul__(self, other):
-        other_shadow = to_pysmt(other)
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type():
             raise TypeError("CANNOT '*' %s and %s" %(self.expr.get_type(), other.get_type()))
         return SymbolicInteger(self.expr * other, shadow_expr=(self.shadow_expr * other_shadow))
 
     def __mod__(self, other):
-        other_shadow = to_pysmt(other)
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type() or self.expr.get_type() != INT:
             raise TypeError("CANNOT 'mod' %s and %s" %(self.expr.get_type(), other.get_type()))
@@ -46,7 +46,7 @@ class SymbolicInteger(SymbolicObject):
 
 
     def __floordiv__(self, other):
-        other_shadow = to_pysmt(other)
+        other_shadow = to_pysmt(other, shadow=True)
         other = to_pysmt(other)
         if self.expr.get_type() != other.get_type() or self.expr.get_type() != INT:
             raise TypeError("CANNOT '//' %s and %s" %(self.expr.get_type(), other.get_type()))
