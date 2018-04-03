@@ -52,7 +52,7 @@ class PathToConstraint:
         p.negate()
         cpos = self.current_constraint.find_child(p, shadowLeadding)
         c = cpos
-        c_mirror = cpos
+        #c_mirror = cpos
 
         p_shadow = Predicate(shadow_type, shadow_branch)
         p_shadow.negate()

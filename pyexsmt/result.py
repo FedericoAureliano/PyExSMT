@@ -145,5 +145,7 @@ class Result(object):
             return [pred_to_smt(children[0].predicate), self._to_list_rep(children[0], shadow, mirror), None]
         elif len(children) == 0:
             return node.effect
+        elif len(children) >2:
+            return self.build_smt_from_list(children, shadow, mirror)
 
         raise ValueError("Should not be possible! Can't have more than two children.")

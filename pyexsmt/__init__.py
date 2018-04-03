@@ -77,25 +77,27 @@ def uninterp_func_pair(definition, module):
             IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
             AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
             '''
+            args_shadow = [to_pysmt(a, shadow=True) for a in args]
             args = [to_pysmt(a) for a in args]
             try:
+                ret_shadow = f(*args_shadow)
                 ret = f(*args)
-                return get_symbolic_from_expr(ret)
+                return get_symbolic_from_expr(ret, ret_shadow)
             except Exception:
                 logging.error("Failed to call %s of type %s with args %s.", f, ftype, [a.get_type() for a in args])
                 sys.exit(-1)
         funcs = [(module_func, wrapper)]
     return funcs
 
-def get_symbolic_from_expr(expr):
+def get_symbolic_from_expr(expr, shadow_expr=None):
     '''
     expr : pySMT Object (FNode)
     return a SymbolicObject that wraps expr
     '''
     if expr.get_type().is_int_type():
-        return SymbolicInteger(expr)
+        return SymbolicInteger(expr, shadow_expr=shadow_expr)
     elif expr.get_type().is_bool_type():
-        return SymbolicObject(expr)
+        return SymbolicObject(expr, shadow_expr=shadow_expr)
     else:
         logging.error("TYPE NOT FOUND: %s", expr.get_type())
         sys.exit(-1)
