@@ -21,6 +21,8 @@ class SymbolicObject(object):
         else:
             self.shadow_expr = shadow_expr
 
+        self.origin_expr = self.expr
+
 
     # This is set up by the concolic engine to link __bool__ to PathConstraint
     SI = None
@@ -58,7 +60,7 @@ class SymbolicObject(object):
         #if we executing shadow program, move shadow value to the foreground
         if SymbolicObject.SHADOW_LEADING:
             if SymbolicObject.SI != None:
-                SymbolicObject.SI.which_branch(ret_shadow, shadow_obj, ret, obj)
+                SymbolicObject.SI.which_branch(ret_shadow, shadow_obj, ret, obj,shadowLeadding=True)
             return ret_shadow
         else:
             if SymbolicObject.SI != None:
@@ -98,6 +100,7 @@ class SymbolicObject(object):
         return self;
 
     def reset_shadow(self):
+        self.expr = self.origin_expr
         self.shadow_expr = self.expr
 
     def symbolic_eq(self, other, shadow=False):

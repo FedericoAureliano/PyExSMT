@@ -30,7 +30,7 @@ class Result(object):
             ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
             if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
-                print ("Find a output mismatch: %s vs %s", ret, ret_shadow )
+                logging.info("Find a output mismatch: %s vs %s", ret, ret_shadow )
             if (shadow):
                 ret =ret_shadow
         self.execution_return_values.append(ret)
@@ -72,9 +72,9 @@ class Result(object):
         else:
             return ""
 
-    def to_summary(self, unknown=Symbol('Unknown', INT)):
-        if self.list_rep is None:
-            self.list_rep = self._to_list_rep(self.path.root_constraint)
+    def to_summary(self, unknown=Symbol('Unknown', INT), shadow = False):
+        if self.list_rep is None or shadow:
+            self.list_rep = self._to_list_rep(self.path.root_constraint, shadow)
         summary = self._to_summary(self.list_rep, unknown)
         return summary
 
@@ -91,19 +91,37 @@ class Result(object):
         else:
             return unknown
 
-    def _to_list_rep(self, node):
+    def build_smt_from_list (self, nodes, shadow=False):
+        if (len(nodes) == 1):
+            return self._to_list_rep(nodes[0], shadow)
+        else:
+            return_list = []
+            left_node = nodes.pop(0)
+            return_list.append(pred_to_smt(left_node.predicate))
+            return_list.append(self._to_list_rep(left_node, shadow))
+            if (len(nodes) >0):
+                return_list.append(self.build_smt_from_list(nodes, shadow))
+
+        return return_list
+
+    def _to_list_rep(self, node, shadow=False):
         if node is None:
             return None
-        children = node.children
+        if shadow:
+            children = node.shadow_children
+        else:
+            children = node.children
+        if ((not shadow) and node.four_way and len(children) != 0):
+            return self.build_smt_from_list(children, shadow)
         if len(children) == 2:
-            if node.children[0].predicate.symtype.symbolic_eq(node.children[1].predicate.symtype):
-                left = node.children[0] if node.children[0].predicate.result else node.children[1]
-                right = node.children[1] if not node.children[1].predicate.result else node.children[0]
-                return [pred_to_smt(left.predicate), self._to_list_rep(left), self._to_list_rep(right)]
+            if children[0].predicate.symtype.symbolic_eq(children[1].predicate.symtype):
+                left = children[0] if children[0].predicate.result else children[1]
+                right = children[1] if not children[1].predicate.result else children[0]
+                return [pred_to_smt(left.predicate), self._to_list_rep(left, shadow), self._to_list_rep(right, shadow)]
             else:
                 raise ValueError("Two children of a constraint should have the same predicate!")
-        elif len(node.children) == 1:
-            return [pred_to_smt(node.children[0].predicate), self._to_list_rep(node.children[0]), None]
+        elif len(children) == 1:
+            return [pred_to_smt(children[0].predicate), self._to_list_rep(children[0], shadow), None]
         elif len(children) == 0:
             return node.effect
 

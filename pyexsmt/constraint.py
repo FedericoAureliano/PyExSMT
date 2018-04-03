@@ -13,9 +13,11 @@ class Constraint:
         self.processed = False
         self.parent = parent
         self.children = []
+        self.shadow_children = []
         self.id = self.__class__.cnt
         self.__class__.cnt += 1
         self.siblings = None
+        self.four_way = False
 
     def __eq__(self, other):
         """Two Constraints are equal iff they have the same chain of predicates"""
@@ -57,16 +59,28 @@ class Constraint:
             s += "\n  path: %s" % repr(self.parent)
         return s
 
-    def find_child(self, predicate):
-        for c in self.children:
+    def find_child(self, predicate, shadow=False):
+        if (shadow):
+            children_list = self.shadow_children
+        else:
+            children_list = self.children
+
+        for c in children_list:
             if predicate == c.predicate:
                 return c
         return None
 
-    def add_child(self, predicate):
-        assert(self.find_child(predicate) is None)
+    def add_child(self, predicate, shadow=False, four_way=False):
+        if (shadow):
+            children_list = self.shadow_children
+        else:
+            children_list = self.children
+
+        assert(self.find_child(predicate, shadow=shadow) is None)
         c = Constraint(self, predicate)
-        self.children.append(c)
+        children_list.append(c)
+        self.four_way = four_way or self.four_way
+
         return c
 
     def add_siblings (self, predicate, priority = False):

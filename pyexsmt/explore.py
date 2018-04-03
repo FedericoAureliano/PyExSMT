@@ -48,7 +48,7 @@ class ExplorationEngine:
         self.path.mod = mod
 
         symbolic_ret = self._one_execution(funcs)
-        #if path diverged, execute on the old version to return output
+        #if execution path diverged, execute on the old version to validate program's return value
         if (self.diverge):
             shadow_ret = self._one_execution(funcs, shadowLeading=True)
             if (symbolic_ret != shadow_ret):
