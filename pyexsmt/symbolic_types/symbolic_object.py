@@ -315,7 +315,7 @@ def compare_symbolic_and_concrete_value(val1, val2, constraints=[]):
     else:
         val2_concrete = val2
 
-    if (val1 != val2):
+    if (val1_concrete != val2_concrete):
         return 2, None
 
 
