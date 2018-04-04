@@ -3,7 +3,8 @@ from graphviz import Source
 
 from pyexsmt import pred_to_smt, get_concr_value, match_smt_type
 from pyexsmt.symbolic_types import SymbolicObject
-from pyexsmt.symbolic_types.symbolic_object import to_pysmt, is_instance_userdefined_and_newclass
+from pyexsmt.symbolic_types.symbolic_object import to_pysmt, is_instance_userdefined_and_newclass, compare_symbolic_and_concrete_value
+from pyexsmt.predicate import  pred_to_smt
 
 from pysmt.shortcuts import *
 
@@ -14,6 +15,7 @@ class Result(object):
         self.execution_return_values = []
         self.list_rep = None
         self.curr_id = 0
+        self.mismatch_constraints = None
 
     def record_inputs(self, inputs):
         inputs = [(k, get_concr_value(inputs[k])) for k in inputs]
@@ -35,8 +37,19 @@ class Result(object):
             ret_shadow_symbolic = ret.to_shadow()
             ret_shadow=ret.get_concr_value(shadow=True)
             ret = ret.get_concr_value()
-            if (ret != ret_shadow and compare_symbolic_shadow_result and not shadow):
-                return [ret, ret_shadow]
+            if (compare_symbolic_shadow_result and not shadow):
+                if (ret != ret_shadow):
+                    return [ret_symbolic, ret_shadow_symbolic]
+                #if two expression not the same, then we need to vildate possible input values that could cause mismatch in output
+                elif (ret_shadow_symbolic.expr != ret_symbolic.expr):
+                    asserts, query = self.path.current_constraint.get_asserts_and_query()
+                    collection = [pred_to_smt(p) for p in asserts + [query]]
+                    result, diff_constraint = compare_symbolic_and_concrete_value(ret_symbolic, ret_shadow_symbolic, collection)
+                    if result > 0:
+                        if result == 1:
+                            self.mismatch_constraint = collection + [diff_constraint]
+                        return [ret_symbolic, ret_shadow_symbolic]
+
 
         #if we are running on shadow (old) version, use the shadow return value
         if (shadow):
