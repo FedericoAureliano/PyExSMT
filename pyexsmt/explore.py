@@ -7,6 +7,7 @@ from pyexsmt.path_to_constraint import PathToConstraint
 from pyexsmt import pred_to_smt
 from pyexsmt.symbolic_types import symbolic_object
 from pyexsmt.result import Result
+from pyexsmt.symbolic_types.symbolic_object import compare_symbolic_and_concrete_value
 
 from pysmt.shortcuts import *
 
@@ -60,7 +61,8 @@ class ExplorationEngine:
         #if execution path diverged, execute on the old version to validate program's return value
         if (self.diverge):
             shadow_ret = self._one_execution(funcs, shadowLeading=True)
-            if (symbolic_ret != shadow_ret):
+            result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret)
+            if (result > 0):
                 self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
                 return None
 
@@ -78,10 +80,10 @@ class ExplorationEngine:
             logging.debug("SELECTED CONSTRAINT: %s", repr(selected))
             asserts, query = selected.get_asserts_and_query()
             if (selected.siblings is None):
-                self._find_counterexample(asserts, query)
+                query = self._find_counterexample(asserts, query)
             else:
                 #if 4 way forking is used, then we will explore the siblings
-                self._find_conterexample_shadow(asserts, selected)
+                query= self._find_conterexample_shadow(asserts, selected)
 
 
             if not self.solver.last_result:
@@ -99,8 +101,17 @@ class ExplorationEngine:
                 return None
 
             if self.diverge:
+                mirror_asserts, mirror_query= self.path.current_constraint.get_asserts_and_query()
                 shadow_ret = self._one_execution(funcs, shadowLeading=True)
-                if (symbolic_ret != shadow_ret):
+                shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query()
+                asserts = [pred_to_smt(p) for p in asserts + mirror_asserts + shadow_assert]
+                query = [query, pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
+                collection = asserts + query
+                result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
+                if (result > 0):
+                    #return 1 means there could a input value set that cause the return being different, solve for the input set
+                    if (result == 1):
+                        self.solver.solve(collection + [diff_constraint])
                     self.print_counter_example(self.symbolic_inputs,symbolic_ret,shadow_ret)
                     return None
 
@@ -113,7 +124,7 @@ class ExplorationEngine:
 
         return self.result
 
-    def print_counter_example (self, symbolic_inputs, return_new, return_shadow):
+    def print_counter_example (self, symbolic_inputs, return_new, return_shadow, proven_inequaility=False):
         input_string = ""
         sep = ""
         for key,value in symbolic_inputs.items():
@@ -123,6 +134,12 @@ class ExplorationEngine:
             input_string+=("=")
             input_string+=str(value)
         print("Find a counter example with input: %s" % input_string)
+        if (isinstance(return_new, symbolic_object.SymbolicObject)):
+            return_new = str(return_new.expr) + " with concrete value: " + str(return_new.get_concr_value())
+
+        if (isinstance(return_shadow, symbolic_object.SymbolicObject)):
+            return_shadow = str(return_shadow.expr) + " with value: " + str(return_shadow.get_concr_value())
+
         print("New Version returns %s, Old Version returns %s" % (return_new, return_shadow))
 
     def _is_exploration_complete(self):
@@ -174,6 +191,7 @@ class ExplorationEngine:
         assumptions = [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
         logging.debug("SOLVING: %s", assumptions)
         self.solver.solve(assumptions)
+        return Not(pred_to_smt(query))
 
     def _find_conterexample_shadow(self, asserts, constraint):
         query = constraint.siblings.pop(0)
@@ -182,7 +200,10 @@ class ExplorationEngine:
         self.solver.solve(assumptions)
         if (len(constraint.siblings) > 0):
             self.constraints_to_solve.appendleft(constraint)
+            constraint.processed = False;
         else:
             constraint.processed = True;
+
+        return pred_to_smt(query)
 
 

@@ -301,6 +301,38 @@ def to_pysmt(val, shadow= False):
     else:
         raise NotImplementedError("Wrap doesn't support this type! %s." %type(val))
 
+#2, conceretely ineq, 1, symbolically ineq, 0, eq
+def compare_symbolic_and_concrete_value(val1, val2, constraints=[]):
+
+    #first compare concrete value to check equaility
+    if (isinstance(val1, SymbolicObject)):
+        val1_concrete = val1.get_concr_value()
+    else:
+        val1_concrete = val1
+
+    if (isinstance(val2, SymbolicObject)):
+        val2_concrete = val2.get_concr_value()
+    else:
+        val2_concrete = val2
+
+    if (val1 != val2):
+        return 2, None
+
+
+    val1 = to_pysmt(val1)
+    val2 = to_pysmt(val2)
+
+    #0 means the two values are trivially equal
+    if (val1 == val2):
+        return 0, None
+
+    elif is_sat(And(NotEquals(val1,val2), *constraints)):
+        return 1, And(NotEquals(val1,val2))
+
+    else:
+        return 0, None
+
+
 
 def is_instance_userdefined_and_newclass(inst):
     '''

@@ -53,7 +53,7 @@ class Result(object):
         #record current constraint's effect
         self.path.current_constraint.effect = ret_symbolic
         self.execution_return_values.append(ret)
-        return ret
+        return ret_symbolic
 
     def to_dot(self, filename):
         header = "digraph {\n"
