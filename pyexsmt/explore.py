@@ -108,7 +108,8 @@ class ExplorationEngine:
 
             #if we found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
             if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
-                #check if we need to re-computer the input set in order to cause the difference
+                #if mismatch_constraints is not None, the output mismatch is inferred from ret's symbolic expressions
+                #Run the solver one last time to compute the conflict-triggering input set
                 if (not self.result.mismatch_constraints is None):
                     self.solver.solve(self.result.mismatch_constraints)
                 self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
@@ -123,7 +124,7 @@ class ExplorationEngine:
                 collection = asserts + query
                 result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
                 if (result > 0):
-                    # return 1 means there could a input value set that cause the output being different, solve for the input set
+                    # return 1 means there could be a input set differentiate output values, solve for the input set
                     if (result == 1):
                         self.solver.solve(collection + [diff_constraint])
                     self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
@@ -179,7 +180,7 @@ class ExplorationEngine:
         logging.debug("EXPECTED PATH: %s", expected_path)
 
 
-        #if input has already been attempted, skip execution
+        #if input X has already been attempted, abort current execution and move to the next
         if (not self.result.record_inputs(self.symbolic_inputs) and not shadowLeading):
             logging.debug("Duplicated INPUTS: %s", self.symbolic_inputs)
             return None
