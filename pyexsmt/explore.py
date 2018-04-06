@@ -106,7 +106,7 @@ class ExplorationEngine:
                 self.num_processed_constraints += 1
                 continue
 
-            #if we found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
+            #if we've found a conflicting output across 2 versions, we will get a list of 2 rets, print out the values as counter example
             if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
                 #if mismatch_constraints is not None, the output mismatch is inferred from ret's symbolic expressions
                 #Run the solver one last time to compute the conflict-triggering input set
