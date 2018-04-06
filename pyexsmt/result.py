@@ -123,6 +123,13 @@ class Result(object):
         else:
             return unknown
 
+    #Handling case when a node has more than 2 child nodes with a nested IF ELSE Structure
+    #For the merged program summary, a node can have up to 4 children
+    #IF A1, A2, A3 are the three child nodes of A
+    #The IF-ELSE Strucutre will be :
+    #IF A1
+    #    HEN (A1 node)
+    #ELSE ( IF A2 THEN (A2 NODE) ELSE (A3 Node))
     def build_smt_from_list (self, nodes, shadow=False, mirror =False):
         if (len(nodes) == 1):
             return self._to_list_rep(nodes[0], shadow)
@@ -136,6 +143,9 @@ class Result(object):
 
         return return_list
 
+    #If shadow is true, then we are going to build the list rep based on shadow program
+    #if mirror is true, then we are going to build the list rep based on new program
+    #Otherwise, build the list based on the merged 4 way forking program
     def _to_list_rep(self, node, shadow=False, mirror =False):
         if node is None:
             return None
