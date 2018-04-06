@@ -91,7 +91,6 @@ class PathToConstraint:
                         self.add(c)
                     self.diverge = diverage or self.diverge
                     constraint_find = True
-                    # TODO also add the shadow constraint to shadow child list since both version follow the sme path
                     p_shadow_copy = Predicate(p_shadow.symtype, p_shadow.result)
                     c_shadow_mirror = self.current_shadow_constraint.find_child(p_shadow_copy, shadow=True)
                     if c_shadow_mirror is None:
@@ -117,9 +116,11 @@ class PathToConstraint:
                         not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
-                    priority = not diverage
-                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
-                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+                    p_merged  = p.AND(p_shadow)
+                    if self.current_constraint.find_child(pMerged) is None:
+                        priority = not diverage
+                        c_possible_divergence = c.add_siblings(p_merged, priority)
+                        logging.debug("New possible divergence constraint: %s", c_possible_divergence)
 
             # case 3, flip  shadow predicate but keep symbolic the same
             if cpos is None and cneg_shadow is None and constraint_find:
@@ -135,9 +136,11 @@ class PathToConstraint:
                         not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
-                    priority = not diverage
-                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
-                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+                    p_merged = p.AND(p_shadow)
+                    if self.current_constraint.find_child(pMerged) is None:
+                        priority = not diverage
+                        c_possible_divergence = c.add_siblings(p_merged, priority)
+                        logging.debug("New possible divergence constraint: %s", c_possible_divergence)
 
             # case 4, flip both shadow and symbolic predicate
             if cneg is None and cneg_shadow is None and constraint_find:
@@ -153,9 +156,11 @@ class PathToConstraint:
                         not is_sat(And(pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
-                    priority = diverage
-                    c_possible_divergence = c.add_siblings(p.AND(p_shadow), priority)
-                    logging.debug("New possible divergence constraint: %s", c_possible_divergence)
+                    p_merged = p.AND(p_shadow)
+                    if self.current_constraint.find_child(pMerged) is None:
+                        priority = diverage
+                        c_possible_divergence = c.add_siblings(p_merged, priority)
+                        logging.debug("New possible divergence constraint: %s", c_possible_divergence)
 
 
         #if program has aleady diverged, then only perform 2 way forking as normal symbolic execution
