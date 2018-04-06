@@ -104,7 +104,7 @@ def create_shadow(symbolic_expression, shadow_expression):
     elif isinstance(symbolic_expression, int) or symbolic_expression is None :
         expr = to_pysmt(symbolic_expression)
     else:
-        # if the input expression is not int, then use the genereic symbolic object
+        # if the input expression is not int, then use the generic symbolic object
         return ob_create_shadow(symbolic_expression, shadow_expression)
 
     if isinstance(shadow_expression, SymbolicInteger):
@@ -112,7 +112,7 @@ def create_shadow(symbolic_expression, shadow_expression):
     elif isinstance(shadow_expression, int) or shadow_expression is None:
         shadow_expr = to_pysmt(shadow_expression, shadow=True)
     else:
-        # if the shadow expression is not int, then use the genereic symbolic object
+        # if the shadow expression is not int, then use the generic symbolic object
         return ob_create_shadow(symbolic_expression, shadow_expression)
 
     return SymbolicInteger(expr=expr, shadow_expr=shadow_expr)
