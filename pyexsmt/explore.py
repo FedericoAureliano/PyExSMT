@@ -52,9 +52,11 @@ class ExplorationEngine:
         self.path.mod = mod
 
         symbolic_ret = self._one_execution(funcs)
-        # if we found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
+        # if we've found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
         if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
             if (not self.result.mismatch_constraints is None):
+                #If the mismatch is deduced from symbolic expression, then run the solver to compute
+                #the input that is capable of re-constructing the mismatch
                 self.solver.solve(self.result.mismatch_constraints)
             self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
             return None
@@ -69,6 +71,7 @@ class ExplorationEngine:
             asserts = [pred_to_smt(p) for p in  mirror_asserts + shadow_assert]
             query = [ pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
             collection = asserts + query
+            #PC_Merged = PC_new AND PC_old
             result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
             if (result > 0):
                 self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
@@ -88,10 +91,10 @@ class ExplorationEngine:
             logging.debug("SELECTED CONSTRAINT: %s", repr(selected))
             asserts, query = selected.get_asserts_and_query()
             if (selected.siblings is None):
-                query = self._find_counterexample(asserts, query)
+                self._find_counterexample(asserts, query)
             else:
-                #if 4 way forking is used, then we will explore the siblings
-                query= self._find_conterexample_shadow(asserts, selected)
+                #if 4 way forking is used, then we will explore one of the siblings
+                self._find_conterexample_shadow(asserts, selected)
 
 
             if not self.solver.last_result:
@@ -115,12 +118,12 @@ class ExplorationEngine:
                 mirror_asserts, mirror_query= self.path.current_constraint.get_asserts_and_query()
                 shadow_ret = self._one_execution(funcs, shadowLeading=True)
                 shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query()
-                asserts = [pred_to_smt(p) for p in asserts + mirror_asserts + shadow_assert]
-                query = [query, pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
+                asserts = [pred_to_smt(p) for p in mirror_asserts + shadow_assert]
+                query = [pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
                 collection = asserts + query
                 result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
                 if (result > 0):
-                    # return 1 means there could a input value set that cause the return being different, solve for the input set
+                    # return 1 means there could a input value set that cause the output being different, solve for the input set
                     if (result == 1):
                         self.solver.solve(collection + [diff_constraint])
                     self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
@@ -202,7 +205,6 @@ class ExplorationEngine:
         assumptions = [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
         logging.debug("SOLVING: %s", assumptions)
         self.solver.solve(assumptions)
-        return Not(pred_to_smt(query))
 
     def _find_conterexample_shadow(self, asserts, constraint):
         query = constraint.siblings.pop(0)
@@ -214,7 +216,5 @@ class ExplorationEngine:
             constraint.processed = False;
         else:
             constraint.processed = True;
-
-        return pred_to_smt(query)
 
 

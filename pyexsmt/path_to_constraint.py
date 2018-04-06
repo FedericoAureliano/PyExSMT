@@ -14,9 +14,9 @@ class PathToConstraint:
         self.add = add
         self.root_constraint = Constraint(None, None)
         self.current_constraint = self.root_constraint
-        #constraint of the old program
+        #constraint of the old program during 4 way forking
         self.current_shadow_constraint = self.root_constraint
-        #constraint of the new program
+        #constraint of the new program during 4 way forking
         self.current_mirror_constraint = self.root_constraint
         self.expected_path = None
         self.max_depth = 0
@@ -52,14 +52,12 @@ class PathToConstraint:
         p.negate()
         cpos = self.current_constraint.find_child(p, shadowLeadding)
         c = cpos
-        #c_mirror = cpos
 
         p_shadow = Predicate(shadow_type, shadow_branch)
         p_shadow.negate()
         cneg_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
         p_shadow.negate()
         c_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
-        #c_shadow_mirror = c_shadow
 
         #two bool to record the current state of p and p_shadow
         p_bool = branch;
@@ -72,17 +70,18 @@ class PathToConstraint:
 
 
 
-        #if program has no diverging paths, perform 4-way forking
+        #if the current program path has not diverged, perform 4 way forking
         #if program was executed on the shadow version, do not perform 4 way forking
         if (not self.diverge and not shadowLeadding):
             #perform 4 way forking
-            #follow the concrete input and create path constraint
+            #follow the concrete input and current path constraint
             if not constraint_find:
                 asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
                 else:
+                    #Merged p and p shadow to form one of the merged 4 way forking predicates
                     pMerged = p.AND(p_shadow)
                     c = self.current_constraint.find_child(pMerged)
                     if (c is None):
@@ -91,6 +90,9 @@ class PathToConstraint:
                         self.add(c)
                     self.diverge = diverage or self.diverge
                     constraint_find = True
+
+                    #Now record the path constraint of the old / new program respectively
+                    #This is needed to re-compute program summaries for both versions from the merged program.
                     p_shadow_copy = Predicate(p_shadow.symtype, p_shadow.result)
                     c_shadow_mirror = self.current_shadow_constraint.find_child(p_shadow_copy, shadow=True)
                     if c_shadow_mirror is None:
@@ -117,7 +119,7 @@ class PathToConstraint:
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged  = p.AND(p_shadow)
-                    if self.current_constraint.find_child(pMerged) is None:
+                    if self.current_constraint.find_child(p_merged) is None:
                         priority = not diverage
                         c_possible_divergence = c.add_siblings(p_merged, priority)
                         logging.debug("New possible divergence constraint: %s", c_possible_divergence)
@@ -137,7 +139,7 @@ class PathToConstraint:
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged = p.AND(p_shadow)
-                    if self.current_constraint.find_child(pMerged) is None:
+                    if self.current_constraint.find_child(p_merged) is None:
                         priority = not diverage
                         c_possible_divergence = c.add_siblings(p_merged, priority)
                         logging.debug("New possible divergence constraint: %s", c_possible_divergence)
@@ -157,13 +159,13 @@ class PathToConstraint:
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged = p.AND(p_shadow)
-                    if self.current_constraint.find_child(pMerged) is None:
+                    if self.current_constraint.find_child(p_merged) is None:
                         priority = diverage
                         c_possible_divergence = c.add_siblings(p_merged, priority)
                         logging.debug("New possible divergence constraint: %s", c_possible_divergence)
 
 
-        #if program has aleady diverged, then only perform 2 way forking as normal symbolic execution
+        #if program has aleady diverged, then only perform 2 way forking
         if cpos is None and not constraint_find and (shadowLeadding or self.diverge):
             asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
             if self.mod is not None and not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
@@ -177,6 +179,8 @@ class PathToConstraint:
                 self.add(c)
                 constraint_find = True
 
+            #If the path has diverged on the merged program, only record the path constraint
+            #of the new program
             if (not shadowLeadding):
                 p_copy = Predicate(p.symtype, p.result)
                 c_mirror = self.current_mirror_constraint.find_mirror_child(p_copy)
@@ -205,6 +209,7 @@ class PathToConstraint:
             c.processed = True
             logging.debug("Processed constraint: %s", c)
 
+        #Update current path constraint for merged, new and old program accordingly
         self.current_constraint = c
         if not shadowLeadding:
             self.current_mirror_constraint = c_mirror

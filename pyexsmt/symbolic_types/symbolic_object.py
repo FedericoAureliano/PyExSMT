@@ -15,12 +15,16 @@ class SymbolicObject(object):
         else:
             self.expr = expr
 
-        #if Shadow is not detected, set shadow expression same as symbolic expression
+        #Shadow expression within a symbolic object
         if shadow_expr is None:
+            #Shadow expression is None implies that no difference is detected
+            #Then, shadow expression is just a copy of symbolic expression
             self.shadow_expr = self.expr
         else:
             self.shadow_expr = shadow_expr
 
+        #keep a record of the original expression for input varaibles
+        #We need to reset the symbolic expression when the program's input is reset
         self.origin_expr = self.expr
 
 
@@ -56,7 +60,7 @@ class SymbolicObject(object):
         ret = obj.get_concr_value()
         ret_shadow =shadow_obj.get_concr_value()
 
-        #if we executing shadow program, move shadow value to the foreground
+        #if the shadow program is running, move shadow value to the foreground
         if SymbolicObject.SHADOW_LEADING:
             if SymbolicObject.SI != None:
                 SymbolicObject.SI.which_branch(ret_shadow, shadow_obj, ret, obj,shadowLeadding=True)
@@ -67,6 +71,8 @@ class SymbolicObject(object):
 
             return ret
 
+    #If shadow option is enabled, then instead of returning the concrete value from symbolic expression,
+    #The concrete value will be compute from the shadow expression
     def get_concr_value(self, shadow=False):
         if SymbolicObject.SOLVER is None:
             raise ValueError("MUST SPECIFY SOLVER")
@@ -78,6 +84,8 @@ class SymbolicObject(object):
             val = SymbolicObject.SOLVER.get_py_value(self.expr)
         return val
 
+    #Method to indicate a change exclusive on the new version of the program
+    #Returns a new symbolic object with modified symbolic expression
     def symbloic(self, symbolicExpr, name="se", ty=INT):
         if symbolicExpr is None:
             expr = Symbol(name, ty)
@@ -87,6 +95,8 @@ class SymbolicObject(object):
 
         return SymbolicObject(expr=expr, shadow_expr=self.shadow_expr);
 
+    #Method to indicate a change exclusively on the shadow version of the program
+    #Return a new symbolic object with modified shadow expression
     def shadow(self, shadowExpr, name="se", ty=INT):
         if shadowExpr is None:
             shadow_expr = Symbol(name, ty)
@@ -96,10 +106,11 @@ class SymbolicObject(object):
 
         return SymbolicObject(expr=self.expr, shadow_expr=shadow_expr);
 
-    #method convert self to a shadow symbolic object, make shadow the foreground value
+    #Method return a new symbolic object with symbolic expression replaced by shadow expression
     def to_shadow(self):
         return SymbolicObject(expr=self.shadow_expr)
 
+    #Reset Symbolic object to its origin state. Remove all effects from shadow symbolic execution
     def reset_shadow(self):
         self.expr = self.origin_expr
         self.shadow_expr = self.expr
@@ -109,7 +120,7 @@ class SymbolicObject(object):
             ret = False
 
         if shadow:
-            ret = (repr(self.expr) == repr(other.expr)) and (repr(self.shadow_expr) == repr(other.shadow_expr))
+            ret = (repr(self.shadow_expr) == repr(other.shadow_expr))
         else:
             ret = repr(self.expr) == repr(other.expr)
         logging.debug("Checking equality of %s and %s: result is %s", repr(self), repr(other), ret)
@@ -344,7 +355,11 @@ def is_instance_userdefined_and_newclass(inst):
     return False
 
 
-#method to create a shadow expression, only callable on shadow handler
+#Function to mark difference between new and old programs.
+#Return a Symbolic object with:
+#  symbolic expression representing the value in the new program
+#  shadow expression representing the value in the old program
+#TODO: need to support None as a valid expression for either symbolic and shadow expression
 def create_shadow(symbolic_expression, shadow_expression):
     if isinstance(symbolic_expression, SymbolicObject):
         expr = symbolic_expression.expr
