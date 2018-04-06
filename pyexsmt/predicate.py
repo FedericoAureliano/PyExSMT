@@ -31,6 +31,9 @@ class Predicate:
         assert self.result is not None
         self.result = not self.result
 
+    #Method to merge to Predicate using AND operator,
+    #Return a new Predicate whose expression is the merged expression of self and other
+    #This method is intend to combine 2 2-way forking predicate into a 4-way forking predicate
     def AND(self, other):
         if isinstance(other, Predicate):
             if (self == other):
