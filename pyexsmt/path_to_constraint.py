@@ -179,21 +179,28 @@ class PathToConstraint:
             if self.mod is not None and not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
                 logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
                 return
-            c = self.current_constraint.find_child(p, shadowLeadding)
-            if ( c is None):
-                c = self.current_constraint.add_child(p, shadowLeadding)
-                # we add the new constraint to the queue of the engine for later processing
-                logging.debug("New constraint: %s", c)
-                self.add(c)
-                constraint_find = True
 
-            #If the path has diverged on the merged program, only record the path constraint
+            c_exists = False
+
+            #If the path has diverged on the merged program, record the path constraint
             #of the new program
             if (not shadowLeadding):
+                #Test if path is already explored
+                c_exists = True
                 p_copy = Predicate(p.symtype, p.result)
                 c_mirror = self.current_mirror_constraint.find_mirror_child(p_copy)
                 if c_mirror is None:
                     c_mirror = self.current_mirror_constraint.add_mirror_child(p_copy)
+                    c_exists = False
+            
+            c = self.current_constraint.find_child(p, shadowLeadding)
+            if (c is None):
+                c = self.current_constraint.add_child(p, shadowLeadding)
+                # we add the new constraint to the queue of the engine for later processing
+                logging.debug("New constraint: %s", c)
+                if not (c_exists):
+                    self.add(c)
+                constraint_find = True
 
 
         # check for path mismatch

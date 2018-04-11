@@ -76,6 +76,8 @@ class ExplorationEngine:
             #PC_Merged = PC_new AND PC_old
             result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
             if (result > 0):
+                if (result == 1):
+                    self.solver.solve(collection + [diff_constraint])
                 self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
                 return None
 
