@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 
 from pyexsmt import uninterp_func_pair
 from pyexsmt.loader import *
-from pyexsmt.explore import ExplorationEngine
+from pyexsmt.explore import ExplorationEngine, ShadowExplorationEngine
 
 from pysmt.shortcuts import *
 
@@ -36,6 +36,9 @@ def main():
                                     help="Limit the depth of paths", default=0)
     parser.add_argument("--solver", dest="solver", action="store", \
                                     help="Choose SMT solver", default="z3")
+    parser.add_argument("--shadow", dest="shadow", action="store", \
+                        help="Select Python file with function to shadow. \
+                        Function must have same name and signature", default=None)
     parser.add_argument(dest="file", action="store", help="Select Python file")
 
     options = parser.parse_args()
@@ -61,7 +64,7 @@ def main():
         logging.error("Solver %s not available", options.solver)
         sys.exit(-1)
     else:
-        solver = options.solver
+        solver = Solver(options.solver)
 
     summary = options.summary
 
@@ -73,27 +76,50 @@ def main():
         sys.exit(1)
 
     print("Exploring " + app.get_file() + "." + app.get_entry())
+    
+    if options.shadow is not None:
+        shadow = os.path.abspath(options.shadow)
+        # Get the object describing the application
+        shadow = loaderFactory(shadow, options.entry)
+        if shadow is None:
+            sys.exit(1)
+        
+        print("Shadowing with " + shadow.get_file() + "." + shadow.get_entry())
 
     funcs = uninterp_func_pair(options.uninterp, app.get_file())
 
     result = None
     try:
-        engine = ExplorationEngine(app.create_invocation(), solver=solver)
-        result_struct = engine.explore(options.max_iters, options.max_depth, funcs)
+        if options.shadow is not None:
+            engine = ShadowExplorationEngine(app.create_invocation(), shadow.create_invocation(), solver, options.max_iters, options.max_depth)
+            result_struct = engine.explore(funcs)
 
-        return_vals = result_struct.execution_return_values
-
-        # check the result
-        result = app.execution_complete(return_vals)
-
-        # print summary
-        if summary:
-            summary = result_struct.to_summary()
-            print("\nSummary:\n%s\n" % summary)
-
-        # output DOT graph
-        if options.dot_graph:
-            result_struct.to_dot(filename)
+            if isinstance(result_struct, tuple):
+                count = 0
+                for r in result_struct:
+                    # print summary
+                    if summary:
+                        summary = r.to_summary()
+                        print("\nSummary:\n%s\n" % summary)
+                    # output DOT graph
+                    if options.dot_graph:
+                        r.to_dot(filename+str(count))
+                    count += 1
+            else:
+                print("Counterexample with inputs %s" % result_struct)
+        else:
+            engine = ExplorationEngine(app.create_invocation(), solver, options.max_iters, options.max_depth)
+            result_struct = engine.explore(funcs)
+            return_vals = result_struct.execution_return_values
+            # check the result
+            result = app.execution_complete(return_vals)
+            # print summary
+            if summary:
+                summary = result_struct.to_summary()
+                print("\nSummary:\n%s\n" % summary)
+            # output DOT graph
+            if options.dot_graph:
+                result_struct.to_dot(filename)
 
     except (ImportError, NotImplementedError, TypeError) as error:
         # create_invocation can raise ImportError
