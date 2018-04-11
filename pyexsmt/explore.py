@@ -7,11 +7,13 @@ from pyexsmt.path_to_constraint import PathToConstraint
 from pyexsmt import pred_to_smt
 from pyexsmt.symbolic_types import symbolic_object
 from pyexsmt.result import Result
+from pyexsmt.symbolic_types.symbolic_object import compare_symbolic_and_concrete_value
 
 from pysmt.shortcuts import *
 
 
 class ExplorationEngine:
+
     def __init__(self, funcinv, solver="z3"):
         self.invocation = funcinv
         # the input to the function
@@ -20,10 +22,13 @@ class ExplorationEngine:
         for n in funcinv.get_names():
             self.symbolic_inputs[n] = funcinv.create_arg_value(n)
 
+        #create a SHADOW_HANDLER to control shadow annotation injection
+
+
         self.constraints_to_solve = deque([])
         self.num_processed_constraints = 0
 
-        self.path = PathToConstraint(lambda c : self.add_constraint(c))
+        self.path = PathToConstraint(lambda c ,priority = False : self.add_constraint(c , priority ))
         # link up SymbolicObject to PathToConstraint in order to intercept control-flow
         symbolic_object.SymbolicObject.SI = self.path
 
@@ -35,15 +40,45 @@ class ExplorationEngine:
         # outputs
         self.result = Result(self.path)
 
-    def add_constraint(self, constraint):
+        self.diverge = False;
+
+    def add_constraint(self, constraint, priority = False):
         logging.debug("ADDING CONSTRAINT: %s", repr(constraint))
-        self.constraints_to_solve.append(constraint)
+        if constraint not in self.constraints_to_solve:
+            if (priority ):
+                self.constraints_to_solve.appendleft(constraint)
+            else:
+                self.constraints_to_solve.append(constraint)
 
     def explore(self, max_iterations=0, max_depth=0, funcs=[], mod=None):
         self.path.max_depth = max_depth
         self.path.mod = mod
 
-        self._one_execution(funcs)
+        symbolic_ret = self._one_execution(funcs)
+        # if we've found a value mismatch across 2 versions, we will get a list of 2 rets, print out the values as counter example
+        if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
+            if (not self.result.mismatch_constraints is None):
+                #If the mismatch is deduced from symbolic expression, then run the solver to compute
+                #the input that is capable of re-constructing the mismatch
+                self.solver.solve(self.result.mismatch_constraints)
+            self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
+            return None
+
+
+        #if execution path diverged, execute on the old version to validate program's return value
+        if (self.diverge):
+            mirror_asserts, mirror_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
+            shadow_ret = self._one_execution(funcs, shadowLeading=True)
+            shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
+            asserts = [pred_to_smt(p) for p in  mirror_asserts + shadow_assert]
+            query = [ pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
+            collection = asserts + query
+            #PC_Merged = PC_new AND PC_old
+            result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
+            if (result > 0):
+                self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
+                return None
+
         
         iterations = 1
         if max_iterations != 0 and iterations >= max_iterations:
@@ -57,12 +92,45 @@ class ExplorationEngine:
 
             logging.debug("SELECTED CONSTRAINT: %s", repr(selected))
             asserts, query = selected.get_asserts_and_query()
-            self._find_counterexample(asserts, query)
+            if (selected.siblings is None):
+                self._find_counterexample(asserts, query)
+            else:
+                #if 4 way forking is used, then we will explore one of the siblings
+                self._find_conterexample_shadow(asserts, selected)
+
 
             if not self.solver.last_result:
                 continue
 
-            self._one_execution(funcs, selected)
+            #if the selected input has already been attempted, skip to the next constraint
+            symbolic_ret = self._one_execution(funcs)
+            if (symbolic_ret is None):
+                self.num_processed_constraints += 1
+                continue
+
+            #if we've found a conflicting output across 2 versions, we will get a list of 2 rets, print out the values as counter example
+            if (isinstance(symbolic_ret, list) and len(symbolic_ret) > 1):
+                #if mismatch_constraints is not None, the output mismatch is inferred from ret's symbolic expressions
+                #Run the solver one last time to compute the conflict-triggering input set
+                if (not self.result.mismatch_constraints is None):
+                    self.solver.solve(self.result.mismatch_constraints)
+                self.print_counter_example(self.symbolic_inputs, symbolic_ret[0], symbolic_ret[1])
+                return None
+
+            if self.diverge:
+                mirror_asserts, mirror_query= self.path.current_constraint.get_asserts_and_query(set_processed=False)
+                shadow_ret = self._one_execution(funcs, shadowLeading=True)
+                shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
+                asserts = [pred_to_smt(p) for p in mirror_asserts + shadow_assert]
+                query = [pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
+                collection = asserts + query
+                result, diff_constraint = compare_symbolic_and_concrete_value(symbolic_ret, shadow_ret, collection)
+                if (result > 0):
+                    # return 1 means there could be a input set differentiate output values, solve for the input set
+                    if (result == 1):
+                        self.solver.solve(collection + [diff_constraint])
+                    self.print_counter_example(self.symbolic_inputs, symbolic_ret, shadow_ret)
+                    return None
 
             iterations += 1			
             self.num_processed_constraints += 1
@@ -73,7 +141,23 @@ class ExplorationEngine:
 
         return self.result
 
-    # private
+    def print_counter_example (self, symbolic_inputs, return_new, return_shadow, proven_inequaility=False):
+        input_string = ""
+        sep = ""
+        for key,value in symbolic_inputs.items():
+            input_string+=sep
+            sep = " , "
+            input_string+=str(key)
+            input_string+=("=")
+            input_string+=str(value)
+        print("Find a counter example with input: %s" % input_string)
+        if (isinstance(return_new, symbolic_object.SymbolicObject)):
+            return_new = str(return_new.expr) + " with concrete value: " + str(return_new.get_concr_value())
+
+        if (isinstance(return_shadow, symbolic_object.SymbolicObject)):
+            return_shadow = str(return_shadow.expr) + " with value: " + str(return_shadow.get_concr_value())
+
+        print("New Version returns %s, Old Version returns %s" % (return_new, return_shadow))
 
     def _is_exploration_complete(self):
         num_constr = len(self.constraints_to_solve)
@@ -85,25 +169,55 @@ class ExplorationEngine:
             num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints)
             return False
 
-    def _one_execution(self, funcs=[], expected_path=None):
+    def _reset_shadow(self, sInput):
+        for _, value in sInput.items():
+            if isinstance(value, symbolic_object.SymbolicObject):
+                value.reset_shadow()
+
+    def _one_execution(self, funcs=[], expected_path=None, shadowLeading = False):
+
+        if (shadowLeading):
+            logging.debug("PATH has diverged, execute program on shadow version")
+            symbolic_object.SymbolicObject.SHADOW_LEADING = True
         logging.debug("EXPECTED PATH: %s", expected_path)
 
-        self.result.record_inputs(self.symbolic_inputs)
+
+        #if input X has already been attempted, abort current execution and move to the next
+        if (not self.result.record_inputs(self.symbolic_inputs) and not shadowLeading):
+            logging.debug("Duplicated INPUTS: %s", self.symbolic_inputs)
+            return None
+
+
+        #reset shadow value for symbolic input
+        self._reset_shadow(self.symbolic_inputs)
         logging.info("USING INPUTS: %s", self.result.generated_inputs[-1])
 
         self.path.reset(expected_path)
-
-        try:
-            ret = self.invocation.call_function(self.symbolic_inputs, funcs)
-        except Exception:
-            ret = None
+        ret = self.invocation.call_function(self.symbolic_inputs, funcs)
+        symbolic_object.SymbolicObject.SHADOW_LEADING = False
 
         logging.debug("CURRENT CONSTARINT: %s", repr(self.path.current_constraint))
         logging.info("RETURN: %s", ret)
 
-        self.result.record_output(ret)
+        self.diverge = self.path.diverge
+        return self.result.record_output(ret, shadowLeading, compare_symbolic_shadow_result= (not self.diverge))
+
+
 
     def _find_counterexample(self, asserts, query):
         assumptions = [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
         logging.debug("SOLVING: %s", assumptions)
         self.solver.solve(assumptions)
+
+    def _find_conterexample_shadow(self, asserts, constraint):
+        query = constraint.siblings.pop(0)
+        assumptions = [pred_to_smt(p) for p in asserts] + [(pred_to_smt(query))]
+        logging.debug("SOLVING: %s", assumptions)
+        self.solver.solve(assumptions)
+        if (len(constraint.siblings) > 0):
+            self.constraints_to_solve.appendleft(constraint)
+            constraint.processed = False;
+        else:
+            constraint.processed = True;
+
+
