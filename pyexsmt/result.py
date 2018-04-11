@@ -42,7 +42,7 @@ class Result(object):
                     return [ret_symbolic, ret_shadow_symbolic]
                 #if two expression not the same, then we need to vildate possible input values that could cause mismatch in output
                 elif (ret_shadow_symbolic.expr != ret_symbolic.expr):
-                    asserts, query = self.path.current_constraint.get_asserts_and_query()
+                    asserts, query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
                     collection = [pred_to_smt(p) for p in asserts + [query]]
                     result, diff_constraint = compare_symbolic_and_concrete_value(ret_symbolic, ret_shadow_symbolic, collection)
                     if result > 0:

@@ -28,7 +28,7 @@ class ExplorationEngine:
         self.constraints_to_solve = deque([])
         self.num_processed_constraints = 0
 
-        self.path = PathToConstraint(lambda c : self.add_constraint(c))
+        self.path = PathToConstraint(lambda c ,priority = False : self.add_constraint(c , priority ))
         # link up SymbolicObject to PathToConstraint in order to intercept control-flow
         symbolic_object.SymbolicObject.SI = self.path
 
@@ -42,10 +42,13 @@ class ExplorationEngine:
 
         self.diverge = False;
 
-    def add_constraint(self, constraint):
+    def add_constraint(self, constraint, priority = False):
         logging.debug("ADDING CONSTRAINT: %s", repr(constraint))
         if constraint not in self.constraints_to_solve:
-            self.constraints_to_solve.append(constraint)
+            if (priority ):
+                self.constraints_to_solve.appendleft(constraint)
+            else:
+                self.constraints_to_solve.append(constraint)
 
     def explore(self, max_iterations=0, max_depth=0, funcs=[], mod=None):
         self.path.max_depth = max_depth
@@ -64,10 +67,9 @@ class ExplorationEngine:
 
         #if execution path diverged, execute on the old version to validate program's return value
         if (self.diverge):
+            mirror_asserts, mirror_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
             shadow_ret = self._one_execution(funcs, shadowLeading=True)
-            mirror_asserts, mirror_query = self.path.current_constraint.get_asserts_and_query()
-            shadow_ret = self._one_execution(funcs, shadowLeading=True)
-            shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query()
+            shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
             asserts = [pred_to_smt(p) for p in  mirror_asserts + shadow_assert]
             query = [ pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
             collection = asserts + query
@@ -116,9 +118,9 @@ class ExplorationEngine:
                 return None
 
             if self.diverge:
-                mirror_asserts, mirror_query= self.path.current_constraint.get_asserts_and_query()
+                mirror_asserts, mirror_query= self.path.current_constraint.get_asserts_and_query(set_processed=False)
                 shadow_ret = self._one_execution(funcs, shadowLeading=True)
-                shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query()
+                shadow_assert, shadow_query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
                 asserts = [pred_to_smt(p) for p in mirror_asserts + shadow_assert]
                 query = [pred_to_smt(mirror_query), pred_to_smt(shadow_query)]
                 collection = asserts + query

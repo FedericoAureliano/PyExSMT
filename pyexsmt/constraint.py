@@ -33,8 +33,9 @@ class Constraint:
         else:
             return False
 
-    def get_asserts_and_query(self):
-        self.processed = True
+    def get_asserts_and_query(self , set_processed = True):
+        if set_processed:
+            self.processed = True
         asserts = self.get_asserts()
         return asserts, self.predicate	       
 

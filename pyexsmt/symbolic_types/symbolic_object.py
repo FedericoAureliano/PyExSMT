@@ -329,6 +329,7 @@ def compare_symbolic_and_concrete_value(val1, val2, constraints=[]):
     if (val1_concrete != val2_concrete):
         return 2, None
 
+    #TODO have constant UNEQ_CONCRETE =2
 
     val1 = to_pysmt(val1)
     val2 = to_pysmt(val2)
