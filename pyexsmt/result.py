@@ -47,7 +47,7 @@ class Result(object):
                     result, diff_constraint = compare_symbolic_and_concrete_value(ret_symbolic, ret_shadow_symbolic, collection)
                     if result > 0:
                         if result == 1:
-                            self.mismatch_constraint = collection + [diff_constraint]
+                            self.mismatch_constraints = collection + [diff_constraint]
                         return [ret_symbolic, ret_shadow_symbolic]
 
 

@@ -117,7 +117,7 @@ class PathToConstraint:
                 asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
-                        not is_sat(And(pred_to_smt(self.current_constraint.predicate), pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                        not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow)))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged  = p.AND(p_shadow)
@@ -138,7 +138,7 @@ class PathToConstraint:
                 asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
-                        not is_sat(And(pred_to_smt(self.current_constraint.predicate), pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                        not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged = p.AND(p_shadow)
@@ -159,7 +159,7 @@ class PathToConstraint:
                 asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
-                        not is_sat(And(pred_to_smt(self.current_constraint.predicate), pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
+                        not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow)))):
                     logging.debug("Path is not feasible: %s %s", c.parent, p.AND(p_shadow))
                 else:
                     p_merged = p.AND(p_shadow)
@@ -192,14 +192,14 @@ class PathToConstraint:
                 if c_mirror is None:
                     c_mirror = self.current_mirror_constraint.add_mirror_child(p_copy)
                     c_exists = False
-            
+
             c = self.current_constraint.find_child(p, shadowLeadding)
             if (c is None):
                 c = self.current_constraint.add_child(p, shadowLeadding)
                 # we add the new constraint to the queue of the engine for later processing
                 logging.debug("New constraint: %s", c)
                 if not (c_exists):
-                    self.add(c)
+                    self.add(c, self.diverge)
                 constraint_find = True
 
 
