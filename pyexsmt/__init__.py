@@ -4,6 +4,7 @@ import sys
 
 from pyexsmt.symbolic_types import SymbolicObject
 from pyexsmt.symbolic_types.symbolic_int import SymbolicInteger
+from pyexsmt.symbolic_types.difference_expression import DifferenceExpression
 from pyexsmt.symbolic_types.symbolic_object import to_pysmt
 
 from pysmt.shortcuts import *
@@ -77,8 +78,19 @@ def uninterp_func_pair(definition, module):
             IMPORTANT OR ELSE SYMBOLIC VARIABLES GET CAUGHT IN PROCESSING
             AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
             '''
-            args_shadow = [to_pysmt(a, shadow=True) for a in args]
-            args = [to_pysmt(a) for a in args]
+            args_shadow = []
+            args = []
+            for a in args:
+               if isinstance(a, DifferenceExpression):
+                   arg = to_pysmt(a.get_origin())
+                   arg_shadow = to_pysmt(a.get_shadow())
+               else:
+                   arg = to_pysmt(a)
+                   arg_shadow =to_pysmt(a)
+
+               args_shadow.append(arg_shadow)
+               args.append(arg)
+
             try:
                 #compute the shadow return expression from uninterp function
                 ret_shadow = f(*args_shadow)
@@ -90,15 +102,15 @@ def uninterp_func_pair(definition, module):
         funcs = [(module_func, wrapper)]
     return funcs
 
-def get_symbolic_from_expr(expr, shadow_expr=None):
+def get_symbolic_from_expr(expr):
     '''
     expr : pySMT Object (FNode)
     return a SymbolicObject that wraps expr and shadow expression
     '''
     if expr.get_type().is_int_type():
-        return SymbolicInteger(expr, shadow_expr=shadow_expr)
+        return SymbolicInteger(expr)
     elif expr.get_type().is_bool_type():
-        return SymbolicObject(expr, shadow_expr=shadow_expr)
+        return SymbolicObject(expr)
     else:
         logging.error("TYPE NOT FOUND: %s", expr.get_type())
         sys.exit(-1)

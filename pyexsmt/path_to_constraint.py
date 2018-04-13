@@ -37,9 +37,19 @@ class PathToConstraint:
                 self.expected_path.append(tmp.predicate)
                 tmp = tmp.parent
 
-    def which_branch(self, branch, symbolic_type, shadow_branch, shadow_type, shadowLeadding = False):
+    def which_branch(self, branch, symbolic_type, shadow_branch=None, shadow_type=None, shadowLeadding = False):
         """ This function acts as instrumentation.
         Branch can be either True or False."""
+
+
+        four_way = True;
+        #First determine if two way forking or four way forking
+        if (shadow_branch is None):
+            shadow_branch = branch
+            shadow_type = symbolic_type
+            four_way = False
+
+
 
         if self.max_depth > 0 and self.current_constraint.get_length() >= self.max_depth:
             logging.debug("Max Depth (%d) Reached", self.max_depth)
@@ -52,34 +62,33 @@ class PathToConstraint:
         p.negate()
         cpos = self.current_constraint.find_child(p, shadowLeadding)
         c = cpos
-
-        p_shadow = Predicate(shadow_type, shadow_branch)
-        p_shadow.negate()
-        cneg_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
-        p_shadow.negate()
-        c_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
-
-        #two bool to record the current state of p and p_shadow
         p_bool = branch;
-        p_shadow_bool = shadow_branch;
+
+        if four_way:
+            p_shadow = Predicate(shadow_type, shadow_branch)
+            p_shadow.negate()
+            cneg_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
+            p_shadow.negate()
+            c_shadow = self.current_constraint.find_child(p_shadow, shadowLeadding)
+            p_shadow_bool = shadow_branch;
+
+
+            #continue exploration if path does not diverage
+            diverage = p_bool != p_shadow_bool
+            potenial_divegence = (p != p_shadow)
+            diverging_path_fesibile = False
 
         constraint_find = False;
 
-        #continue exploration if path does not diverage
-        diverage = p_bool != p_shadow_bool
-        potenial_divegence = (p != p_shadow)
-        diverging_path_fesibile = False
-
-
-
+        #get asserts from the current path constraint
+        asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
 
         #if the current program path has not diverged, perform 4 way forking
         #if program was executed on the shadow version, do not perform 4 way forking
-        if (not self.diverge and not shadowLeadding):
+        if (four_way and not self.diverge and not shadowLeadding):
             #perform 4 way forking
             #follow the concrete input and current path constraint
             if not constraint_find:
-                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
                     logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
@@ -114,7 +123,6 @@ class PathToConstraint:
                 if (p_shadow_bool != shadow_branch):
                     p_shadow.negate()
                     p_shadow_bool = shadow_branch
-                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
                         not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow)))):
@@ -135,7 +143,6 @@ class PathToConstraint:
                 if (p_shadow_bool == shadow_branch):
                     p_shadow.negate()
                     p_shadow_bool = not shadow_branch
-                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
                         not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow), *asserts))):
@@ -156,7 +163,6 @@ class PathToConstraint:
                 if (p_shadow_bool == shadow_branch):
                     p_shadow.negate()
                     p_shadow_bool = not shadow_branch
-                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
                 if (self.mod is not None and not is_sat(
                         And(self.mod, pred_to_smt(p), pred_to_smt(p_shadow), *asserts))) or (
                         not is_sat(And( pred_to_smt(p), pred_to_smt(p_shadow)))):
@@ -174,8 +180,7 @@ class PathToConstraint:
 
 
         #if program has aleady diverged, then only perform 2 way forking
-        if cpos is None and not constraint_find and (shadowLeadding or self.diverge):
-            asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+        if not constraint_find and (shadowLeadding or self.diverge or not four_way):
             if self.mod is not None and not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
                 logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
                 return
@@ -193,6 +198,11 @@ class PathToConstraint:
                     c_mirror = self.current_mirror_constraint.add_mirror_child(p_copy)
                     c_exists = False
 
+                if (not four_way):
+                    c_shadow_mirror = self.current_shadow_constraint.find_child(p_copy, shadow=True)
+                    if c_shadow_mirror is None:
+                        c_shadow_mirror = self.current_shadow_constraint.add_child(p_copy, shadow=True)
+
             c = self.current_constraint.find_child(p, shadowLeadding)
             if (c is None):
                 c = self.current_constraint.add_child(p, shadowLeadding)
@@ -201,6 +211,7 @@ class PathToConstraint:
                 if not (c_exists):
                     self.add(c, self.diverge)
                 constraint_find = True
+
 
 
         # check for path mismatch

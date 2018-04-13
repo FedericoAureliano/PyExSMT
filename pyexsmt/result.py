@@ -4,6 +4,7 @@ from graphviz import Source
 from pyexsmt import pred_to_smt, get_concr_value, match_smt_type
 from pyexsmt.symbolic_types import SymbolicObject
 from pyexsmt.symbolic_types.symbolic_object import to_pysmt, is_instance_userdefined_and_newclass, compare_symbolic_and_concrete_value
+from pyexsmt.symbolic_types.difference_expression import DifferenceExpression
 from pyexsmt.predicate import  pred_to_smt
 
 from pysmt.shortcuts import *
@@ -27,41 +28,55 @@ class Result(object):
 
     def record_output(self, ret, shadow=False, compare_symbolic_shadow_result=False):
         logging.info("RECORDING EFFECT: %s -> %s", self.path.current_constraint, ret)
-        #first unify two ret values
-        ret_symbolic = ret
+        ret_origin = ret
         ret_shadow = ret
-        ret_shadow_symbolic = ret
+        ret_shadow_concrete= ret
+        ret_origin_concrete = ret
 
-        #if return value is a symbolic object, check its mirror and shadow values
-        if isinstance(ret, SymbolicObject):
-            ret_shadow_symbolic = ret.to_shadow()
-            ret_shadow=ret.get_concr_value(shadow=True)
-            ret = ret.get_concr_value()
-            if (compare_symbolic_shadow_result and not shadow):
-                if (ret != ret_shadow):
-                    return [ret_symbolic, ret_shadow_symbolic]
-                #if two expression not the same, then we need to vildate possible input values that could cause mismatch in output
-                elif (ret_shadow_symbolic.expr != ret_symbolic.expr):
-                    asserts, query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
-                    collection = [pred_to_smt(p) for p in asserts + [query]]
-                    result, diff_constraint = compare_symbolic_and_concrete_value(ret_symbolic, ret_shadow_symbolic, collection)
-                    if result > 0:
-                        if result == 1:
-                            self.mismatch_constraints = collection + [diff_constraint]
-                        return [ret_symbolic, ret_shadow_symbolic]
+        #if return value is a differenceExpression, check its origin and shadow expression
+        if (isinstance(ret, DifferenceExpression)):
+            ret_shadow = ret.get_shadow()
+            ret_origin = ret.get_origin()
 
+        if isinstance(ret_shadow, SymbolicObject):
+            ret_shadow_concrete = ret_shadow.get_concr_value()
+        else:
+            ret_shadow_concrete = ret_shadow
+
+        if isinstance(ret_origin, SymbolicObject):
+            ret_origin_concrete = ret_origin.get_concr_value()
+        else:
+            ret_origin_concrete = ret_origin
+
+        if (compare_symbolic_shadow_result and not shadow):
+            if (ret_origin_concrete != ret_shadow_concrete):
+                return [ret_origin, ret_shadow]
+
+            symbolic_match = ret_origin == ret_shadow
+            if isinstance(symbolic_match, SymbolicObject):
+                symbolic_match = symbolic_match.get_concr_value()
+            if (not symbolic_match):
+                asserts, query = self.path.current_constraint.get_asserts_and_query(set_processed=False)
+                collection = [pred_to_smt(p) for p in asserts + [query]]
+                result, diff_constraint = compare_symbolic_and_concrete_value(ret_origin, ret_shadow, collection)
+                if result > 0:
+                    if result == 1:
+                        self.mismatch_constraints = collection + [diff_constraint]
+                    return [ret_origin, ret_shadow]
 
         #if we are running on shadow (old) version, use the shadow return value
         if (shadow):
-            ret = ret_shadow
-            ret_symbolic = ret_shadow_symbolic
+            ret = ret_shadow_concrete
+            ret_symbolic = ret_shadow
         else:
+            ret = ret_origin_concrete
+            ret_symbolic = ret_origin
             #if we are running on the merged version, update mirror and shadow return value for the merged path
             if not self.path.diverge:
                 if self.path.current_shadow_constraint.effect is None:
-                    self.path.current_shadow_constraint.effect = ret_shadow_symbolic
+                    self.path.current_shadow_constraint.effect = ret_shadow
             if self.path.current_mirror_constraint.effect is None:
-                self.path.current_mirror_constraint.effect = ret_symbolic
+                self.path.current_mirror_constraint.effect = ret_origin
 
         #record current constraint's effect
         self.path.current_constraint.effect = ret_symbolic

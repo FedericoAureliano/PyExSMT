@@ -8,6 +8,7 @@ from pyexsmt import pred_to_smt
 from pyexsmt.symbolic_types import symbolic_object
 from pyexsmt.result import Result
 from pyexsmt.symbolic_types.symbolic_object import compare_symbolic_and_concrete_value
+from pyexsmt.symbolic_types.difference_expression import DifferenceExpression
 
 from pysmt.shortcuts import *
 
@@ -171,16 +172,12 @@ class ExplorationEngine:
             num_constr, self.num_processed_constraints + num_constr, self.num_processed_constraints)
             return False
 
-    def _reset_shadow(self, sInput):
-        for _, value in sInput.items():
-            if isinstance(value, symbolic_object.SymbolicObject):
-                value.reset_shadow()
 
     def _one_execution(self, funcs=[], expected_path=None, shadowLeading = False):
 
         if (shadowLeading):
             logging.debug("PATH has diverged, execute program on shadow version")
-            symbolic_object.SymbolicObject.SHADOW_LEADING = True
+            DifferenceExpression.SHADOW_LEADING = True
         logging.debug("EXPECTED PATH: %s", expected_path)
 
 
@@ -190,13 +187,11 @@ class ExplorationEngine:
             return None
 
 
-        #reset shadow value for symbolic input
-        self._reset_shadow(self.symbolic_inputs)
         logging.info("USING INPUTS: %s", self.result.generated_inputs[-1])
 
         self.path.reset(expected_path)
         ret = self.invocation.call_function(self.symbolic_inputs, funcs)
-        symbolic_object.SymbolicObject.SHADOW_LEADING = False
+        DifferenceExpression.SHADOW_LEADING = False
 
         logging.debug("CURRENT CONSTARINT: %s", repr(self.path.current_constraint))
         logging.info("RETURN: %s", ret)
