@@ -79,7 +79,7 @@ def uninterp_func_pair(definition, module):
             AND WE GET WEIRD PATHS BEYOND MODULE IN QUESTION
             '''
             args_shadow = []
-            args = []
+            args_origin = []
             for a in args:
                if isinstance(a, DifferenceExpression):
                    arg = to_pysmt(a.get_origin())
@@ -89,12 +89,12 @@ def uninterp_func_pair(definition, module):
                    arg_shadow =to_pysmt(a)
 
                args_shadow.append(arg_shadow)
-               args.append(arg)
+               args_origin.append(arg)
 
             try:
                 #compute the shadow return expression from uninterp function
                 ret_shadow = f(*args_shadow)
-                ret = f(*args)
+                ret = f(*args_origin)
                 return get_symbolic_from_expr(ret, ret_shadow)
             except Exception:
                 logging.error("Failed to call %s of type %s with args %s.", f, ftype, [a.get_type() for a in args])
@@ -102,18 +102,28 @@ def uninterp_func_pair(definition, module):
         funcs = [(module_func, wrapper)]
     return funcs
 
-def get_symbolic_from_expr(expr):
+def get_symbolic_from_expr(expr, expr_shadow):
     '''
     expr : pySMT Object (FNode)
     return a SymbolicObject that wraps expr and shadow expression
     '''
     if expr.get_type().is_int_type():
-        return SymbolicInteger(expr)
+        ret_origin = SymbolicInteger(expr)
     elif expr.get_type().is_bool_type():
-        return SymbolicObject(expr)
+        ret_origin = SymbolicObject(expr)
     else:
         logging.error("TYPE NOT FOUND: %s", expr.get_type())
         sys.exit(-1)
+
+    if expr_shadow.get_type().is_int_type():
+        ret_shadow =  SymbolicInteger(expr_shadow)
+    elif expr_shadow.get_type().is_bool_type():
+        ret_shadow =  SymbolicObject(expr_shadow)
+    else:
+        logging.error("TYPE NOT FOUND: %s", expr_shadow.get_type())
+        sys.exit(-1)
+
+    return DifferenceExpression(ret_origin,ret_shadow).check_to_merge()
 
 def match_smt_type(node, to_type):
     '''
