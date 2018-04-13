@@ -8,15 +8,20 @@ class DifferenceExpression(object):
     def __init__(self, origin_expr=None, shadow_expr=None):
         self.origin_expr = origin_expr
         self.shadow_expr = shadow_expr
+        self.merge_checked = False
 
     def check_to_merge(self):
-        mismatch = self.origin_expr != self.shadow_expr
-        if isinstance(mismatch, SymbolicObject):
-            mismatch = is_sat(to_pysmt(mismatch))
-        if (mismatch):
-            return self
+        if (not self.merge_checked):
+            mismatch = self.origin_expr != self.shadow_expr
+            if isinstance(mismatch, SymbolicObject):
+                mismatch = is_sat(to_pysmt(mismatch))
+            if (mismatch):
+                self.merge_checked = True
+                return self
+            else:
+                return self.origin_expr
         else:
-            return self.origin_expr
+            return self
 
     def get_origin(self):
         return self.origin_expr
@@ -24,7 +29,16 @@ class DifferenceExpression(object):
     def get_shadow(self):
         return self.shadow_expr
 
+
     def __bool__(self):
+
+        val = self.check_to_merge()
+        if isinstance(val, DifferenceExpression):
+            return val.process_boolean()
+        else:
+            return val.__bool__()
+
+    def process_boolean(self):
 
        is_origin_symbolic = isinstance(self.origin_expr, SymbolicObject)
        is_shadow_symbolic = isinstance(self.shadow_expr, SymbolicObject)
@@ -49,6 +63,8 @@ class DifferenceExpression(object):
                ret_origin = ret_origin_result
            else:
                ret_origin =self.origin_expr.__bool__()
+               ret_origin_result = ret_origin
+               ret_origin_symbolic = SymbolicObject(to_pysmt(ret_origin_result)).to_boolean()
 
            if is_shadow_symbolic:
                ret_shadow_symbolic = self.shadow_expr.to_boolean()
@@ -56,14 +72,8 @@ class DifferenceExpression(object):
                ret_shadow = ret_shadow_result
            else:
                ret_shadow = self.shadow_expr.__bool__()
-
-           if (ret_origin_result is None):
-               ret_origin_result = ret_shadow_result
-               ret_origin_symbolic = ret_shadow_symbolic
-
-           if (ret_shadow_result is None):
-               ret_shadow_result = ret_origin_result
-               ret_shadow_symbolic = ret_origin_symbolic
+               ret_shadow_result = ret_shadow
+               ret_shadow_symbolic = SymbolicObject(to_pysmt(ret_origin_result)).to_boolean()
 
 
            if SymbolicObject.SI is not None:
