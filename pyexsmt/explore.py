@@ -93,13 +93,16 @@ class ShadowExplorationEngine:
         self.lead = 0
         self.max_iterations = max_iterations
 
-    def explore(self, funcs=[]):
+    def explore(self, funcs=[], lazy=True):
         original = self.engines[0]
         shadow = self.engines[1]
         r1, r2 = self._one_execution(funcs)
-        if not self.solver.get_py_value(Equals(to_pysmt(r1), to_pysmt(r2))):
-            logging.info("COUNTER! %s != %s", repr(r1), repr(r2))
-            return self.engines[self.lead-1].path.generated_inputs[-1]
+        if lazy:
+            if not self.solver.get_py_value(Equals(to_pysmt(r1), to_pysmt(r2))):
+                logging.info("COUNTER! %s != %s", repr(r1), repr(r2))
+                print("ORIG #Paths: %d" % len(original.path.generated_inputs))
+                print("UPGR #Paths: %d" % len(shadow.path.generated_inputs))
+                return self.engines[self.lead-1].path.generated_inputs[-1]
 
         iterations = 1
         if self.max_iterations != 0 and iterations >= self.max_iterations:
@@ -118,9 +121,12 @@ class ShadowExplorationEngine:
             #TODO avoid executing things unnecesarily? 
             r1, r2 = self._one_execution(funcs, selected)
 
-            if not self.solver.get_py_value(Equals(to_pysmt(r1), to_pysmt(r2))):
-                logging.info("COUNTER! %s != %s", repr(r1), repr(r2))
-                return self.engines[self.lead-1].path.generated_inputs[-1]
+            if lazy:
+                if not self.solver.get_py_value(Equals(to_pysmt(r1), to_pysmt(r2))):
+                    logging.info("COUNTER! %s != %s", repr(r1), repr(r2))
+                    print("ORIG #Paths: %d" % len(original.path.generated_inputs))
+                    print("UPGR #Paths: %d" % len(shadow.path.generated_inputs))
+                    return self.engines[self.lead-1].path.generated_inputs[-1]
 
             iterations += 1
 
