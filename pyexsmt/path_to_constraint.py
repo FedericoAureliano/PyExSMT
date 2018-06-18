@@ -120,13 +120,16 @@ class PathToConstraint:
             self.solver = selected.solver
             SymbolicObject.SOLVER = self.solver
             selected.processed = True
+            # free the memory occupied by the solver and solving thread
             selected.solver = None
+            selected.solving_thread = None
             return self.solver.last_result
         else:
             asserts, query = selected.get_asserts_and_query()
             assumptions = [self.mod] + [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
             self.solver.solve(assumptions)
             logging.debug("SOLVING: %s", assumptions)
+            selected.processed = True
             return self.solver.last_result
 
     def record_inputs(self, inputs):
