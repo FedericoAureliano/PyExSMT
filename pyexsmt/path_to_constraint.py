@@ -8,7 +8,7 @@ from collections import deque
 from pyexsmt.symbolic_types.symbolic_object import to_pysmt, is_instance_userdefined_and_newclass
 from pyexsmt import pred_to_smt, get_concr_value, match_smt_type
 from pyexsmt.symbolic_types import SymbolicObject
-from pyexsmt.constraint import Constraint
+from pyexsmt.constraint import Constraint, submit_constraint_sovling
 from pyexsmt.predicate import Predicate
 
 from pysmt.shortcuts import *
@@ -98,6 +98,8 @@ class PathToConstraint:
             c.processed = True
             logging.info("Processed constraint: %s", c)
 
+        # submit a job to solve constraint
+        submit_constraint_sovling(c)
         self.current_constraint = c
 
     def add_constraint(self, c):
@@ -112,11 +114,20 @@ class PathToConstraint:
     def solve_constraint(self, selected):
         #TODO Check if we already have a solution to it first
         #TODO Do local search if we have an almost solution?
-        asserts, query = selected.get_asserts_and_query()
-        assumptions = [self.mod] + [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
-        self.solver.solve(assumptions)
-        logging.debug("SOLVING: %s", assumptions)
-        return self.solver.last_result
+        if selected.solving_thread is not None:
+            # if job for solving constraint has already started, wait for the result
+            selected.solving_thread.join()
+            self.solver = selected.solver
+            SymbolicObject.SOLVER = self.solver
+            selected.processed = True
+            selected.solver = None
+            return self.solver.last_result
+        else:
+            asserts, query = selected.get_asserts_and_query()
+            assumptions = [self.mod] + [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
+            self.solver.solve(assumptions)
+            logging.debug("SOLVING: %s", assumptions)
+            return self.solver.last_result
 
     def record_inputs(self, inputs):
         inputs = [(k, get_concr_value(inputs[k])) for k in inputs]

@@ -1,9 +1,16 @@
 # Copyright: see copyright.txt
 
 import logging
+from pysmt.shortcuts import *
+from pyexsmt import pred_to_smt
+from threading import Thread, Lock
+
+
 
 class Constraint:
     cnt = 0
+    # To ensure one solver is being ran at one time
+    Constraint_Solving_lock = Lock()
     """A constraint is a list of predicates leading to some specific
        position in the code."""
     def __init__(self, parent, last_predicate):
@@ -15,6 +22,8 @@ class Constraint:
         self.children = []
         self.id = self.__class__.cnt
         self.__class__.cnt += 1
+        self.solver = None
+        self.solving_thread = None
 
     def __eq__(self, other):
         """Two Constraints are equal iff they have the same chain of predicates"""
@@ -26,7 +35,6 @@ class Constraint:
             return False
 
     def get_asserts_and_query(self):
-        self.processed = True
         asserts = self.get_asserts()
         return asserts, self.predicate	       
 
@@ -67,4 +75,33 @@ class Constraint:
         c = Constraint(self, predicate)
         self.children.append(c)
         return c
+
+    def solveConstraint(self):
+        asserts, query =  self.get_asserts_and_query()
+        self._find_counterexample(asserts, query)
+
+    def _find_counterexample(self, asserts, query):
+        assumptions = [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
+        logging.debug("SOLVING: %s", assumptions)
+        self.solver.solve(assumptions)
+
+    def __hash__(self):
+        return hash(id(self))
+
+def solve_constraint_function(constraint):
+    # only allow 1 constraint to be solved at 1 time
+    Constraint.Constraint_Solving_lock.acquire()
+    try:
+        constraint.solveConstraint()
+    except:
+        raise
+    finally:
+        Constraint.Constraint_Solving_lock.release()
+
+def submit_constraint_sovling(constraint, slover="z3"):
+    # create the solver and assign constraint solving to a different thread
+    constraint.solver= Solver(slover)
+    constraint.solving_thread = Thread(target=solve_constraint_function, args={constraint})
+    constraint.solving_thread.start()
+
 
