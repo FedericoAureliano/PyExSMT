@@ -83,18 +83,27 @@ class Constraint:
     def _find_counterexample(self, asserts, query):
         assumptions = [pred_to_smt(p) for p in asserts] + [Not(pred_to_smt(query))]
         logging.debug("SOLVING: %s", assumptions)
-        self.solver.solve(assumptions)
+        Constraint.Constraint_Solving_lock.acquire()
+        try:
+            self.solver.solve(assumptions)
+        except:
+            raise
+        finally:
+            Constraint.Constraint_Solving_lock.release()
+
+
 
     def __hash__(self):
         return hash(id(self))
 
 def solve_constraint_function(constraint):
+    # only allow 1 constraint to be solved at 1 time
     constraint.solveConstraint()
 
 
 def submit_constraint_sovling(constraint, slover="z3"):
     # create the solver and assign constraint solving to a different thread
-    if constraint.solving_thread is not None:
+    if constraint.solving_thread is None:
         constraint.solver= Solver(slover)
         constraint.solving_thread = Thread(target=solve_constraint_function, args={constraint})
         constraint.solving_thread.start()

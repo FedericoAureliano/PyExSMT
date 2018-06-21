@@ -66,10 +66,17 @@ class PathToConstraint:
         c = self.current_constraint.find_child(p)
 
         if c is None:
-            asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
-            if self.mod is not None and not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
-                logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
-                return
+            if self.mod is not None:
+                asserts = [pred_to_smt(p) for p in self.current_constraint.get_asserts()]
+                Constraint.Constraint_Solving_lock.acquire()
+                try:
+                    if not is_sat(And(self.mod, pred_to_smt(p), *asserts)):
+                        logging.debug("Path pruned by mod (%s): %s %s", self.mod, c, p)
+                        return
+                except:
+                    raise
+                finally:
+                    Constraint.Constraint_Solving_lock.release()
 
             c = self.current_constraint.add_child(p)
 
