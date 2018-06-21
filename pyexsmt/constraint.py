@@ -89,14 +89,8 @@ class Constraint:
         return hash(id(self))
 
 def solve_constraint_function(constraint):
-    # only allow 1 constraint to be solved at 1 time
-    Constraint.Constraint_Solving_lock.acquire()
-    try:
-        constraint.solveConstraint()
-    except:
-        raise
-    finally:
-        Constraint.Constraint_Solving_lock.release()
+    constraint.solveConstraint()
+
 
 def submit_constraint_sovling(constraint, slover="z3"):
     # create the solver and assign constraint solving to a different thread
