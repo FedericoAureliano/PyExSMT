@@ -103,7 +103,7 @@ def solve_constraint_function(constraint):
 
 def submit_constraint_sovling(constraint, slover="z3"):
     # create the solver and assign constraint solving to a different thread
-    if constraint.solving_thread is None:
+    if not constraint.processed and constraint.solving_thread is None:
         constraint.solver= Solver(slover)
         constraint.solving_thread = Thread(target=solve_constraint_function, args={constraint})
         constraint.solving_thread.start()
